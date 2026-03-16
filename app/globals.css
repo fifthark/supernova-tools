@@ -1230,6 +1230,445 @@ html, body {
   transition: width 0.3s ease;
 }
 
+/* ─── Insights Panel ─── */
+.insights-panel {
+  margin-bottom: 20px;
+}
+
+.insights-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.insights-panel-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.insights-action-count {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: rgba(220, 38, 38, 0.1);
+  color: #DC2626;
+}
+
+.insights-list {
+  background: var(--bg-secondary);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  padding: 4px 16px;
+  margin-bottom: 12px;
+}
+
+.insight-item {
+  display: flex;
+  gap: 12px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--bg-tertiary);
+  animation: fadeIn 300ms ease;
+}
+
+.insight-item:last-child {
+  border-bottom: none;
+}
+
+.insight-severity {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-top: 6px;
+}
+
+.insight-severity-action { background: #DC2626; }
+.insight-severity-watch  { background: #F59E0B; }
+.insight-severity-win    { background: #059669; }
+
+.insight-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.insight-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+
+.insight-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.insight-confidence {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 1px 6px;
+  border-radius: 8px;
+}
+
+.insight-confidence-high {
+  background: rgba(5, 150, 105, 0.1);
+  color: #059669;
+}
+
+.insight-confidence-medium {
+  background: rgba(245, 158, 11, 0.1);
+  color: #D97706;
+}
+
+.insight-confidence-low {
+  background: var(--bg-tertiary);
+  color: var(--text-tertiary);
+}
+
+.insight-why {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin-bottom: 4px;
+}
+
+.insight-action {
+  font-size: 13px;
+  color: var(--text-primary);
+  line-height: 1.5;
+  font-weight: 500;
+}
+
+.insight-entity-chip {
+  display: inline-block;
+  font-size: 11px;
+  padding: 2px 8px;
+  background: var(--bg-tertiary);
+  border-radius: 10px;
+  color: var(--text-tertiary);
+  margin-top: 6px;
+}
+
+/* ─── Data Completeness ─── */
+.data-completeness {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 0;
+  font-size: 11px;
+}
+
+.data-completeness-label {
+  color: var(--text-tertiary);
+  font-weight: 500;
+  margin-right: 2px;
+}
+
+.data-completeness-tag {
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 500;
+}
+
+.data-completeness-present {
+  background: rgba(5, 150, 105, 0.08);
+  color: #059669;
+}
+
+.data-completeness-missing {
+  background: var(--bg-tertiary);
+  color: var(--text-tertiary);
+  text-decoration: line-through;
+}
+
+/* ─── Platform Breakdown ─── */
+.platform-breakdown {
+  background: var(--bg-secondary);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  padding: 16px 20px;
+  margin-bottom: 20px;
+}
+
+.platform-section {
+  margin-bottom: 16px;
+}
+
+.platform-section:last-child {
+  margin-bottom: 0;
+}
+
+.platform-section-title {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-tertiary);
+  margin-bottom: 10px;
+}
+
+.platform-cards {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.platform-card {
+  flex: 1;
+  min-width: 200px;
+  padding: 14px;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-sm);
+}
+
+.platform-card-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.platform-card-spend {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.platform-card-share {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+}
+
+.platform-card-metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.platform-metric {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+}
+
+.platform-metric-label {
+  color: var(--text-tertiary);
+}
+
+.platform-metric-value {
+  font-weight: 500;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.placement-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.placement-table th {
+  text-align: right;
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-tertiary);
+  border-bottom: 1px solid var(--border);
+}
+
+.placement-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--bg-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+.placement-name {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+/* ─── Performance Heatmap ─── */
+.heatmap-container {
+  background: var(--bg-secondary);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  padding: 16px 20px;
+  margin-bottom: 20px;
+}
+
+.heatmap-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.heatmap-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.heatmap-metric-toggle {
+  display: flex;
+  gap: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.heatmap-metric-btn {
+  font-size: 11px;
+  font-family: inherit;
+  font-weight: 600;
+  padding: 4px 12px;
+  border: none;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.heatmap-metric-btn:not(:last-child) {
+  border-right: 1px solid var(--border);
+}
+
+.heatmap-metric-btn.active {
+  background: var(--accent-profit);
+  color: white;
+}
+
+.heatmap-grid {
+  display: grid;
+  gap: 2px;
+  font-size: 10px;
+}
+
+.heatmap-corner {
+  /* empty top-left cell */
+}
+
+.heatmap-hour-label {
+  text-align: center;
+  font-size: 9px;
+  color: var(--text-tertiary);
+  font-weight: 500;
+  padding-bottom: 4px;
+}
+
+.heatmap-label {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 6px;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  font-weight: 500;
+}
+
+.heatmap-cell {
+  aspect-ratio: 1;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  color: transparent;
+  transition: all 0.15s;
+  cursor: default;
+  min-height: 20px;
+}
+
+.heatmap-cell:hover {
+  outline: 2px solid var(--accent-profit);
+  z-index: 1;
+  color: var(--text-primary);
+}
+
+.heatmap-cell-insufficient {
+  background: var(--bg-tertiary);
+  color: var(--text-tertiary);
+  font-size: 8px;
+}
+
+.heatmap-legend {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+.heatmap-legend-label {
+  font-size: 10px;
+  color: var(--text-tertiary);
+}
+
+.heatmap-legend-gradient {
+  width: 80px;
+  height: 8px;
+  border-radius: 4px;
+}
+
+/* ─── Fatigue Indicator Dots ─── */
+.fatigue-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+.fatigue-dot-red {
+  background: #DC2626;
+}
+
+.fatigue-dot-amber {
+  background: #F59E0B;
+}
+
+/* ─── Frequency Warning Cards ─── */
+.summary-card-warn-red {
+  border: 1px solid rgba(220, 38, 38, 0.3);
+  background: rgba(220, 38, 38, 0.03);
+}
+
+.summary-card-warn-amber {
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  background: rgba(245, 158, 11, 0.03);
+}
+
+.summary-card-warn-red .summary-card-sub,
+.summary-card-warn-amber .summary-card-sub {
+  font-weight: 600;
+}
+
+.summary-card-warn-red .summary-card-sub {
+  color: #DC2626;
+}
+
+.summary-card-warn-amber .summary-card-sub {
+  color: #D97706;
+}
+
 /* FB Ads responsive */
 @media (max-width: 1199px) {
   .fb-ads-container {
@@ -1252,5 +1691,19 @@ html, body {
 
   .chart-card-header {
     padding: 12px 12px 4px;
+  }
+
+  .platform-cards {
+    flex-direction: column;
+  }
+
+  .heatmap-grid {
+    overflow-x: auto;
+  }
+
+  .insights-list {
+    margin-left: -16px;
+    margin-right: -16px;
+    border-radius: 0;
   }
 }

@@ -176,3 +176,57 @@ export interface ParseResult {
   skippedRows: number;
   totalRows: number;
 }
+
+// === METRIC AVAILABILITY (gating for insights) ===
+
+export interface MetricAvailability {
+  frequency: boolean;
+  reach: boolean;
+  platform: boolean;
+  placement: boolean;
+  hourlyData: boolean;
+  landingPageViews: boolean;
+  conversions: boolean;
+  conversionValue: boolean;
+  videoViews: boolean;
+  creativeName: boolean;
+  campaignObjective: boolean;
+}
+
+// === PLATFORM & PLACEMENT BREAKDOWN ===
+
+export interface PlatformSummary extends FBAdsMetrics {
+  platform: string;
+  recordCount: number;
+}
+
+export interface PlacementSummary extends FBAdsMetrics {
+  placement: string;
+  recordCount: number;
+}
+
+// === RECOMMENDATIONS ENGINE ===
+
+export type InsightSeverity = "action" | "watch" | "win";
+
+export type InsightCategory =
+  | "fatigue"
+  | "budget"
+  | "creative"
+  | "targeting"
+  | "timing"
+  | "efficiency";
+
+export interface Insight {
+  id: string;
+  severity: InsightSeverity;
+  category: InsightCategory;
+  title: string;
+  why: string;
+  action: string;
+  entityName?: string;
+  entityType?: "campaign" | "adSet" | "creative";
+  confidence: "high" | "medium" | "low";
+  metric?: string;
+  value?: string;
+}

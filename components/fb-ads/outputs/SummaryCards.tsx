@@ -82,7 +82,19 @@ function buildCards(
       key: "frequency",
       label: "Frequency",
       value: metrics.frequency != null ? metrics.frequency.toFixed(2) : "—",
-      sub: metrics.frequency != null && metrics.frequency > 3 ? "High — possible ad fatigue" : undefined,
+      sub: metrics.frequency != null && metrics.frequency >= 3
+        ? "High — ad fatigue likely"
+        : metrics.frequency != null && metrics.frequency >= 2.5
+        ? "Watch — approaching saturation"
+        : undefined,
+    }),
+    landingPageViewRate: withDelta("landingPageViewRate", {
+      key: "landingPageViewRate",
+      label: "LP View Rate",
+      value: fmtPct(metrics.landingPageViewRate),
+      sub: metrics.landingPageViewRate != null && metrics.landingPageViewRate < 50
+        ? "Below 50% — check page speed"
+        : undefined,
     }),
     conversionValue: withDelta("conversionValue", {
       key: "conversionValue",
@@ -108,16 +120,16 @@ function buildCards(
     }
   }
 
-  // Add ROAS and conversions if not already shown
-  for (const key of ["conversions", "roas"]) {
+  // Add ROAS, conversions, frequency, and LP view rate if not already shown
+  for (const key of ["conversions", "roas", "frequency", "landingPageViewRate"]) {
     if (allCards[key] && !added.has(key) && metrics[key as keyof FBAdsMetrics] != null) {
       cards.push(allCards[key]);
       added.add(key);
     }
   }
 
-  // Cap at 7 cards
-  return cards.slice(0, 7);
+  // Cap at 8 cards
+  return cards.slice(0, 8);
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -147,18 +159,24 @@ export default function SummaryCards({ metrics, objective, previousMetrics }: Pr
 
   return (
     <div className="summary-cards">
-      {cards.map(card => (
-        <div className="summary-card" key={card.key}>
-          <div className="summary-card-label">{card.label}</div>
-          <div className="summary-card-value">
-            {card.value}
-            {card.delta != null && Math.abs(card.delta) >= 0.1 && (
-              <DeltaChip delta={card.delta} inverted={card.deltaInverted} />
-            )}
+      {cards.map(card => {
+        const isFreqWarning = card.key === "frequency" && metrics.frequency != null && metrics.frequency >= 2.5;
+        const freqClass = isFreqWarning
+          ? metrics.frequency! >= 3 ? "summary-card-warn-red" : "summary-card-warn-amber"
+          : "";
+        return (
+          <div className={`summary-card ${freqClass}`} key={card.key}>
+            <div className="summary-card-label">{card.label}</div>
+            <div className="summary-card-value">
+              {card.value}
+              {card.delta != null && Math.abs(card.delta) >= 0.1 && (
+                <DeltaChip delta={card.delta} inverted={card.deltaInverted} />
+              )}
+            </div>
+            {card.sub && <div className="summary-card-sub">{card.sub}</div>}
           </div>
-          {card.sub && <div className="summary-card-sub">{card.sub}</div>}
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

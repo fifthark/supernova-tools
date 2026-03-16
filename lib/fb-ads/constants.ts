@@ -94,6 +94,11 @@ export const COLUMN_ALIASES: Record<string, string> = {
   "Attribution Setting": "Attribution Window",
   "Conversion window": "Attribution Window",
 
+  // Unique click variants (map to Link Clicks)
+  "Unique Outbound Clicks": "Link Clicks",
+  "Unique outbound clicks": "Link Clicks",
+  "Unique Link Clicks": "Link Clicks",
+
   // Platform/placement
   "Publisher Platform": "Platform",
   "Platform": "Platform",
@@ -189,6 +194,25 @@ export const CREATIVE_ALIASES: Record<string, string> = {
   // "celebration-crop": "Celebration Photo",
   // "squad-standing-v2": "Squad Standing Shot",
 };
+
+// === RECOMMENDATION THRESHOLDS ===
+
+export const FATIGUE_FREQUENCY_ACTION = 3.0;
+export const FATIGUE_FREQUENCY_WATCH = 2.5;
+export const BUDGET_WASTE_CPC_THRESHOLD = 1.5;   // 50% above avg triggers waste alert
+export const BUDGET_WASTE_SPEND_MIN = 20;          // Min $20 spend for "pause" advice
+export const TREND_CTR_DROP_THRESHOLD = 0.15;      // 15% decline = action
+export const TREND_CPC_RISE_THRESHOLD = 0.20;      // 20% increase = action
+export const MIN_IMPRESSIONS_FOR_INSIGHT = 1000;
+export const MIN_CLICKS_FOR_RATE_INSIGHT = 30;
+export const MIN_SPEND_SHARE_FOR_FATIGUE = 0.05;   // 5% of total spend
+export const LP_VIEW_RATE_THRESHOLD = 50;           // 50% is healthy
+export const HEATMAP_MIN_IMPRESSIONS = 100;         // Per cell minimum
+export const TREND_MIN_DAYS = 7;                    // Need ≥7 days for trend analysis
+export const TREND_MIN_IMPRESSIONS_PER_HALF = 500;
+
+export const MAX_INSIGHTS_TOP = 8;
+export const MAX_INSIGHTS_DRILL = 5;
 
 // === ERROR MESSAGES ===
 

@@ -6,6 +6,7 @@ import {
   FBAdRecord,
   SortField,
   SortDirection,
+  MetricAvailability,
 } from "@/lib/fb-ads/types";
 import {
   fmtAUD,
@@ -17,7 +18,7 @@ import {
   computeOverallMetrics,
   exportTableAsCSV,
 } from "@/lib/fb-ads/engine";
-import { METRIC_DIRECTIONS } from "@/lib/fb-ads/constants";
+import { METRIC_DIRECTIONS, FATIGUE_FREQUENCY_ACTION, FATIGUE_FREQUENCY_WATCH } from "@/lib/fb-ads/constants";
 
 // ═══════════════════════════════════════════════════════════════════
 // COLUMN DEFINITIONS
@@ -32,7 +33,7 @@ interface Column {
   align?: "left" | "right";
 }
 
-const COLUMNS: Column[] = [
+const BASE_COLUMNS: Column[] = [
   { key: "creativeName", label: "Creative", format: v => String(v || "—"), sortable: true, colourable: false, align: "left" },
   { key: "campaignCount", label: "Campaigns", format: v => String(v ?? "—"), sortable: true, colourable: false, align: "right" },
   { key: "adCount", label: "Ads", format: v => String(v ?? "—"), sortable: true, colourable: false, align: "right" },
@@ -44,6 +45,39 @@ const COLUMNS: Column[] = [
   { key: "conversions", label: "Conv.", format: v => fmtNumber(v as number | null), sortable: true, colourable: false, align: "right" },
   { key: "roas", label: "ROAS", format: v => fmtRoas(v as number | null), sortable: true, colourable: true, align: "right" },
 ];
+
+const FREQ_COLUMN: Column = {
+  key: "frequency", label: "Freq.", format: v => v != null ? (v as number).toFixed(1) : "—", sortable: true, colourable: false, align: "right",
+};
+
+const THUMB_STOP_COLUMN: Column = {
+  key: "thumbStopRatio", label: "Thumb Stop", format: v => fmtPct(v as number | null), sortable: true, colourable: true, align: "right",
+};
+
+function buildColumns(availability?: MetricAvailability): Column[] {
+  const cols = [...BASE_COLUMNS];
+  // Insert frequency after CPC (index 7 in base)
+  if (availability?.frequency) {
+    cols.splice(8, 0, FREQ_COLUMN);
+  }
+  // Insert thumb stop before ROAS
+  if (availability?.videoViews) {
+    const roasIdx = cols.findIndex(c => c.key === "roas");
+    if (roasIdx >= 0) cols.splice(roasIdx, 0, THUMB_STOP_COLUMN);
+  }
+  return cols;
+}
+
+function FatigueDot({ frequency }: { frequency: number | null }) {
+  if (frequency == null) return null;
+  if (frequency >= FATIGUE_FREQUENCY_ACTION) {
+    return <span className="fatigue-dot fatigue-dot-red" title={`Frequency ${frequency.toFixed(1)} — fatigued`} />;
+  }
+  if (frequency >= FATIGUE_FREQUENCY_WATCH) {
+    return <span className="fatigue-dot fatigue-dot-amber" title={`Frequency ${frequency.toFixed(1)} — watch`} />;
+  }
+  return null;
+}
 
 // ═══════════════════════════════════════════════════════════════════
 // SPEND DISTRIBUTION BAR
@@ -69,9 +103,10 @@ interface Props {
   items: CreativeSummary[];
   allRecords: FBAdRecord[];
   dateRange: { start: string; end: string };
+  availability?: MetricAvailability;
 }
 
-export default function CreativeTable({ items, allRecords, dateRange }: Props) {
+export default function CreativeTable({ items, allRecords, dateRange, availability }: Props) {
   const [sortField, setSortField] = useState<SortField>("spend");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
 
@@ -99,24 +134,18 @@ export default function CreativeTable({ items, allRecords, dateRange }: Props) {
     }
   }, [sortField]);
 
+  // Build columns based on available metrics
+  const columns = useMemo(() => buildColumns(availability), [availability]);
+
   // CSV export
   const handleExport = useCallback(() => {
-    const headers = COLUMNS.map(c => c.label);
-    const rows = sortedItems.map(item => [
-      item.creativeName,
-      item.campaignCount,
-      item.adCount,
-      item.spend,
-      item.impressions,
-      item.linkClicks,
-      item.ctr,
-      item.cpc,
-      item.conversions,
-      item.roas,
-    ]);
+    const headers = columns.map(c => c.label);
+    const rows = sortedItems.map(item =>
+      columns.map(col => (item as unknown as Record<string, unknown>)[col.key] as string | number | null)
+    );
     const filename = `fb-ads-creative-${dateRange.start}-to-${dateRange.end}.csv`;
     exportTableAsCSV(headers, rows, filename);
-  }, [sortedItems, dateRange]);
+  }, [sortedItems, dateRange, columns]);
 
   if (sortedItems.length === 0) {
     return (
@@ -149,7 +178,7 @@ export default function CreativeTable({ items, allRecords, dateRange }: Props) {
       <table className="data-table">
         <thead>
           <tr>
-            {COLUMNS.map(col => (
+            {columns.map(col => (
               <th
                 key={col.key}
                 style={{ textAlign: col.align }}
@@ -169,10 +198,11 @@ export default function CreativeTable({ items, allRecords, dateRange }: Props) {
         <tbody>
           {sortedItems.map((item) => (
             <tr key={item.creativeName}>
-              {COLUMNS.map(col => {
+              {columns.map(col => {
                 if (col.key === "creativeName") {
                   return (
                     <td key={col.key} className="name-cell">
+                      <FatigueDot frequency={item.frequency} />
                       {item.creativeName}
                     </td>
                   );

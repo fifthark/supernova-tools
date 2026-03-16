@@ -18,6 +18,10 @@ import {
   fmtPct,
   fmtNumber,
   fmtRoas,
+  computeDeltaPercent,
+  buildMetricAvailability,
+  aggregateByPlatform,
+  aggregateByPlacement,
 } from "../engine";
 import { FBAdRecord } from "../types";
 
@@ -482,5 +486,196 @@ describe("getMostCommonAttributionWindow", () => {
   it("returns null when no windows", () => {
     const records = [makeRecord({ attributionWindow: null })];
     expect(getMostCommonAttributionWindow(records)).toBeNull();
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// DELTA PERCENT
+// ═══════════════════════════════════════════════════════════════════
+
+describe("computeDeltaPercent", () => {
+  it("computes positive delta", () => {
+    // (120 - 100) / 100 * 100 = 20%
+    expect(computeDeltaPercent(120, 100)).toBeCloseTo(20, 2);
+  });
+
+  it("computes negative delta", () => {
+    // (80 - 100) / 100 * 100 = -20%
+    expect(computeDeltaPercent(80, 100)).toBeCloseTo(-20, 2);
+  });
+
+  it("returns null when previous is 0", () => {
+    expect(computeDeltaPercent(100, 0)).toBeNull();
+  });
+
+  it("returns null when either value is null", () => {
+    expect(computeDeltaPercent(null, 100)).toBeNull();
+    expect(computeDeltaPercent(100, null)).toBeNull();
+    expect(computeDeltaPercent(null, null)).toBeNull();
+  });
+
+  it("uses abs(previous) in denominator for negative previous", () => {
+    // (10 - (-5)) / |−5| * 100 = 300%
+    expect(computeDeltaPercent(10, -5)).toBeCloseTo(300, 2);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// METRIC AVAILABILITY
+// ═══════════════════════════════════════════════════════════════════
+
+describe("buildMetricAvailability", () => {
+  it("detects all available metrics", () => {
+    const records = [
+      makeRecord({
+        reach: 3000,
+        platform: "Facebook",
+        placement: "Feed",
+        landingPageViews: 80,
+        conversions: 5,
+        conversionValue: 150,
+        threeSecondVideoViews: 1000,
+        creativeName: "Test Creative",
+        campaignObjective: "OUTCOME_TRAFFIC",
+        hourOfDay: 10,
+      }),
+      makeRecord({
+        hourOfDay: 14, // Different hour to trigger hourlyData
+      }),
+    ];
+
+    const avail = buildMetricAvailability(records);
+    expect(avail.reach).toBe(true);
+    expect(avail.frequency).toBe(true);
+    expect(avail.platform).toBe(true);
+    expect(avail.placement).toBe(true);
+    expect(avail.landingPageViews).toBe(true);
+    expect(avail.conversions).toBe(true);
+    expect(avail.conversionValue).toBe(true);
+    expect(avail.videoViews).toBe(true);
+    expect(avail.creativeName).toBe(true);
+    expect(avail.campaignObjective).toBe(true);
+    expect(avail.hourlyData).toBe(true);
+  });
+
+  it("reports false for missing fields", () => {
+    const records = [
+      makeRecord({
+        reach: null,
+        platform: null,
+        placement: null,
+        landingPageViews: null,
+        conversions: null,
+        conversionValue: null,
+        threeSecondVideoViews: null,
+        creativeName: null,
+        campaignObjective: null,
+        hourOfDay: null,
+      }),
+    ];
+
+    const avail = buildMetricAvailability(records);
+    expect(avail.reach).toBe(false);
+    expect(avail.frequency).toBe(false);
+    expect(avail.platform).toBe(false);
+    expect(avail.placement).toBe(false);
+    expect(avail.landingPageViews).toBe(false);
+    expect(avail.conversions).toBe(false);
+    expect(avail.conversionValue).toBe(false);
+    expect(avail.videoViews).toBe(false);
+    expect(avail.creativeName).toBe(false);
+    expect(avail.campaignObjective).toBe(false);
+    expect(avail.hourlyData).toBe(false);
+  });
+
+  it("returns all false for empty records", () => {
+    const avail = buildMetricAvailability([]);
+    expect(avail.reach).toBe(false);
+    expect(avail.frequency).toBe(false);
+    expect(avail.hourlyData).toBe(false);
+  });
+
+  it("hourlyData requires at least 2 different hours", () => {
+    const records = [
+      makeRecord({ hourOfDay: 10 }),
+      makeRecord({ hourOfDay: 10 }),  // Same hour
+    ];
+
+    const avail = buildMetricAvailability(records);
+    expect(avail.hourlyData).toBe(false);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// PLATFORM AGGREGATION
+// ═══════════════════════════════════════════════════════════════════
+
+describe("aggregateByPlatform", () => {
+  it("groups records by platform", () => {
+    const records = [
+      makeRecord({ platform: "Facebook", spend: 100, impressions: 5000 }),
+      makeRecord({ platform: "Facebook", spend: 50, impressions: 3000 }),
+      makeRecord({ platform: "Instagram", spend: 80, impressions: 4000 }),
+    ];
+
+    const platforms = aggregateByPlatform(records);
+    expect(platforms).toHaveLength(2);
+
+    const fb = platforms.find(p => p.platform === "Facebook")!;
+    expect(fb.spend).toBe(150);
+    expect(fb.impressions).toBe(8000);
+    expect(fb.recordCount).toBe(2);
+
+    const ig = platforms.find(p => p.platform === "Instagram")!;
+    expect(ig.spend).toBe(80);
+    expect(ig.recordCount).toBe(1);
+  });
+
+  it("groups null platforms as 'Unknown'", () => {
+    const records = [
+      makeRecord({ platform: null, spend: 50 }),
+      makeRecord({ platform: "", spend: 30 }),
+      makeRecord({ platform: "Facebook", spend: 100 }),
+    ];
+
+    const platforms = aggregateByPlatform(records);
+    const unknown = platforms.find(p => p.platform === "Unknown");
+    expect(unknown).toBeDefined();
+    expect(unknown!.spend).toBe(80);
+    expect(unknown!.recordCount).toBe(2);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// PLACEMENT AGGREGATION
+// ═══════════════════════════════════════════════════════════════════
+
+describe("aggregateByPlacement", () => {
+  it("groups records by placement", () => {
+    const records = [
+      makeRecord({ placement: "Feed", spend: 100 }),
+      makeRecord({ placement: "Feed", spend: 50 }),
+      makeRecord({ placement: "Story", spend: 80 }),
+      makeRecord({ placement: "Reels", spend: 40 }),
+    ];
+
+    const placements = aggregateByPlacement(records);
+    expect(placements).toHaveLength(3);
+
+    const feed = placements.find(p => p.placement === "Feed")!;
+    expect(feed.spend).toBe(150);
+    expect(feed.recordCount).toBe(2);
+  });
+
+  it("groups null placements as 'Unknown'", () => {
+    const records = [
+      makeRecord({ placement: null, spend: 50 }),
+      makeRecord({ placement: "Feed", spend: 100 }),
+    ];
+
+    const placements = aggregateByPlacement(records);
+    const unknown = placements.find(p => p.placement === "Unknown");
+    expect(unknown).toBeDefined();
+    expect(unknown!.spend).toBe(50);
   });
 });

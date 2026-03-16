@@ -21,6 +21,9 @@ import {
   DateRange,
   SortField,
   SortDirection,
+  MetricAvailability,
+  PlatformSummary,
+  PlacementSummary,
 } from "./types";
 
 // ═══════════════════════════════════════════════════════════════════
@@ -564,7 +567,7 @@ export interface PeriodDelta {
 export function computePreviousPeriod(
   records: FBAdRecord[],
   dateRange: DateRange
-): { previousMetrics: FBAdsMetrics; deltas: Record<string, number | null> } {
+): { currentMetrics: FBAdsMetrics; previousMetrics: FBAdsMetrics; deltas: Record<string, number | null> } {
   const start = new Date(dateRange.start + "T00:00:00");
   const end = new Date(dateRange.end + "T00:00:00");
   const daysDiff = Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
@@ -580,6 +583,8 @@ export function computePreviousPeriod(
     end: prevEnd.toISOString().slice(0, 10),
   };
 
+  const currentRecords = filterByDateRange(records, dateRange);
+  const currentMetrics = computeOverallMetrics(currentRecords);
   const prevRecords = filterByDateRange(records, prevRange);
   const previousMetrics = computeOverallMetrics(prevRecords);
 
@@ -592,13 +597,12 @@ export function computePreviousPeriod(
 
   const deltas: Record<string, number | null> = {};
   for (const key of deltaKeys) {
-    const curr = (previousMetrics as unknown as Record<string, unknown>)[key];
-    const prev = (previousMetrics as unknown as Record<string, unknown>)[key];
-    // We actually need current metrics too
-    deltas[key] = null;
+    const curr = (currentMetrics as unknown as Record<string, unknown>)[key] as number | null;
+    const prev = (previousMetrics as unknown as Record<string, unknown>)[key] as number | null;
+    deltas[key] = computeDeltaPercent(curr, prev);
   }
 
-  return { previousMetrics, deltas };
+  return { currentMetrics, previousMetrics, deltas };
 }
 
 /**
@@ -608,6 +612,86 @@ export function computePreviousPeriod(
 export function computeDeltaPercent(current: number | null, previous: number | null): number | null {
   if (current == null || previous == null || previous === 0) return null;
   return ((current - previous) / Math.abs(previous)) * 100;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// METRIC AVAILABILITY
+// ═══════════════════════════════════════════════════════════════════
+
+export function buildMetricAvailability(records: FBAdRecord[]): MetricAvailability {
+  let hasReach = false;
+  let hasPlatform = false;
+  let hasPlacement = false;
+  let hasLPV = false;
+  let hasConversions = false;
+  let hasConversionValue = false;
+  let hasVideoViews = false;
+  let hasCreativeName = false;
+  let hasObjective = false;
+  let hourSet = new Set<number | null>();
+
+  for (const r of records) {
+    if (r.reach != null) hasReach = true;
+    if (r.platform != null && r.platform.trim() !== "") hasPlatform = true;
+    if (r.placement != null && r.placement.trim() !== "") hasPlacement = true;
+    if (r.landingPageViews != null) hasLPV = true;
+    if (r.conversions != null) hasConversions = true;
+    if (r.conversionValue != null) hasConversionValue = true;
+    if (r.threeSecondVideoViews != null) hasVideoViews = true;
+    if (r.creativeName != null && r.creativeName.trim() !== "") hasCreativeName = true;
+    if (r.campaignObjective != null && r.campaignObjective.trim() !== "") hasObjective = true;
+    if (r.hourOfDay != null) hourSet.add(r.hourOfDay);
+  }
+
+  return {
+    frequency: hasReach,
+    reach: hasReach,
+    platform: hasPlatform,
+    placement: hasPlacement,
+    hourlyData: hourSet.size > 1,
+    landingPageViews: hasLPV,
+    conversions: hasConversions,
+    conversionValue: hasConversionValue,
+    videoViews: hasVideoViews,
+    creativeName: hasCreativeName,
+    campaignObjective: hasObjective,
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// PLATFORM & PLACEMENT AGGREGATION
+// ═══════════════════════════════════════════════════════════════════
+
+export function aggregateByPlatform(records: FBAdRecord[]): PlatformSummary[] {
+  const groups = new Map<string, FBAdRecord[]>();
+
+  for (const r of records) {
+    const key = r.platform && r.platform.trim() !== "" ? r.platform.trim() : "Unknown";
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key)!.push(r);
+  }
+
+  return Array.from(groups.entries()).map(([platform, recs]) => ({
+    platform,
+    recordCount: recs.length,
+    ...computeMetrics(sumRecords(recs)),
+  }));
+}
+
+export function aggregateByPlacement(records: FBAdRecord[]): PlacementSummary[] {
+  const groups = new Map<string, FBAdRecord[]>();
+
+  for (const r of records) {
+    const key = r.placement && r.placement.trim() !== "" ? r.placement.trim() : "Unknown";
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key)!.push(r);
+  }
+
+  return Array.from(groups.entries()).map(([placement, recs]) => ({
+    placement,
+    recordCount: recs.length,
+    ...computeMetrics(sumRecords(recs)),
+  }));
 }
 
 // ═══════════════════════════════════════════════════════════════════

@@ -12,6 +12,7 @@ import {
   ParseResult,
   CampaignSummary,
   AdSetSummary,
+  MetricAvailability,
 } from "@/lib/fb-ads/types";
 import {
   computeOverallMetrics,
@@ -19,12 +20,19 @@ import {
   aggregateAdSets,
   aggregateAds,
   aggregateByCreative,
+  aggregateByPlatform,
+  aggregateByPlacement,
   filterByDateRange,
   filterByAttributionWindow,
   getUniqueAttributionWindows,
   getMostCommonAttributionWindow,
   computeDailyTimeSeries,
+  buildMetricAvailability,
+  hasHourlyData,
+  computeHeatmap,
 } from "@/lib/fb-ads/engine";
+import { generateInsights } from "@/lib/fb-ads/recommendations";
+import { MAX_INSIGHTS_TOP, MAX_INSIGHTS_DRILL } from "@/lib/fb-ads/constants";
 import { validateData } from "@/lib/fb-ads/validation";
 
 import DataSourceSelector from "@/components/fb-ads/inputs/DataSourceSelector";
@@ -34,9 +42,12 @@ import DataQualityBanner from "@/components/fb-ads/outputs/DataQualityBanner";
 import SummaryCards from "@/components/fb-ads/outputs/SummaryCards";
 import CampaignTable from "@/components/fb-ads/outputs/CampaignTable";
 import CreativeTable from "@/components/fb-ads/outputs/CreativeTable";
+import InsightsPanel from "@/components/fb-ads/outputs/InsightsPanel";
+import PlatformBreakdown from "@/components/fb-ads/outputs/PlatformBreakdown";
 import SpendTrendLine from "@/components/fb-ads/charts/SpendTrendLine";
 import CTRTrendLine from "@/components/fb-ads/charts/CTRTrendLine";
 import CPCTrendLine from "@/components/fb-ads/charts/CPCTrendLine";
+import PerformanceHeatmap from "@/components/fb-ads/charts/PerformanceHeatmap";
 
 // ═══════════════════════════════════════════════════════════════════
 // DEFAULT DATE RANGE (last 30 days)
@@ -136,6 +147,12 @@ export default function FBAdsPage() {
     return dateFiltered;
   }, [dateFiltered, attributionWindow]);
 
+  // Metric availability (what fields exist in the data)
+  const metricAvailability = useMemo<MetricAvailability>(
+    () => buildMetricAvailability(filteredRecords),
+    [filteredRecords]
+  );
+
   // Overall metrics
   const summaryMetrics = useMemo(
     () => computeOverallMetrics(filteredRecords),
@@ -186,6 +203,31 @@ export default function FBAdsPage() {
   const creativeSummaries = useMemo(
     () => aggregateByCreative(filteredRecords),
     [filteredRecords]
+  );
+
+  // Platform & Placement
+  const platformSummaries = useMemo(
+    () => metricAvailability.platform ? aggregateByPlatform(filteredRecords) : [],
+    [filteredRecords, metricAvailability.platform]
+  );
+
+  const placementSummaries = useMemo(
+    () => metricAvailability.placement ? aggregateByPlacement(filteredRecords) : [],
+    [filteredRecords, metricAvailability.placement]
+  );
+
+  // Heatmap
+  const showHeatmap = useMemo(() => hasHourlyData(filteredRecords), [filteredRecords]);
+  const heatmapData = useMemo(
+    () => showHeatmap ? computeHeatmap(filteredRecords) : [],
+    [filteredRecords, showHeatmap]
+  );
+
+  // Recommendations
+  const insightsCap = drilldown.level === "campaign" ? MAX_INSIGHTS_TOP : MAX_INSIGHTS_DRILL;
+  const insights = useMemo(
+    () => generateInsights(filteredRecords, dateRange, metricAvailability, insightsCap),
+    [filteredRecords, dateRange, metricAvailability, insightsCap]
   );
 
   // Current drill level items
@@ -306,6 +348,12 @@ export default function FBAdsPage() {
       {/* Dashboard Content */}
       {hasData ? (
         <>
+          {/* Insights Panel — actionable recommendations first */}
+          <InsightsPanel
+            insights={insights}
+            availability={metricAvailability}
+          />
+
           {/* Breadcrumb */}
           <DrilldownBreadcrumb
             drilldown={drilldown}
@@ -319,8 +367,16 @@ export default function FBAdsPage() {
             previousMetrics={previousMetrics}
           />
 
-          {/* Trend Charts (only at campaign level, collapsible) */}
-          {drilldown.level === "campaign" && dailyTimeSeries.length >= 2 && (
+          {/* Platform & Placement Breakdown */}
+          {(metricAvailability.platform || metricAvailability.placement) && (
+            <PlatformBreakdown
+              platforms={platformSummaries}
+              placements={placementSummaries}
+            />
+          )}
+
+          {/* Trend Charts (at all drill levels, collapsible) */}
+          {dailyTimeSeries.length >= 2 && (
             <div className="charts-section">
               <div className="charts-section-header">
                 <span className="charts-section-title">Trends</span>
@@ -341,12 +397,18 @@ export default function FBAdsPage() {
             </div>
           )}
 
+          {/* Performance Heatmap (if hourly data exists) */}
+          {showHeatmap && heatmapData.length > 0 && (
+            <PerformanceHeatmap cells={heatmapData} />
+          )}
+
           {/* Creative Performance Table or Main Table */}
           {isCreativeView ? (
             <CreativeTable
               items={creativeSummaries}
               allRecords={filteredRecords}
               dateRange={dateRange}
+              availability={metricAvailability}
             />
           ) : (
             <CampaignTable
