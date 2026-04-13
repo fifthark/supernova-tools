@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useCallback } from "react";
+import React, { useMemo, useCallback, useState } from "react";
 import {
   FBAdsMetrics,
   CampaignSummary,
@@ -22,6 +22,7 @@ import {
   computeOverallMetrics,
   computeSparkline,
   exportTableAsCSV,
+  aggregateAds,
 } from "@/lib/fb-ads/engine";
 import { METRIC_DIRECTIONS } from "@/lib/fb-ads/constants";
 
@@ -102,6 +103,89 @@ interface Props {
 // COMPONENT
 // ═══════════════════════════════════════════════════════════════════
 
+// ═══════════════════════════════════════════════════════════════════
+// METRIC ROW RENDERER (shared between parent rows and nested ad rows)
+// ═══════════════════════════════════════════════════════════════════
+
+function MetricRow({
+  item,
+  name,
+  id,
+  entityField,
+  level,
+  allRecords,
+  avgMetrics,
+  clickable,
+  onClick,
+  indent,
+  expandToggle,
+}: {
+  item: AnyItem;
+  name: string;
+  id: string;
+  entityField: string;
+  level: DrillLevel;
+  allRecords: FBAdRecord[];
+  avgMetrics: FBAdsMetrics;
+  clickable: boolean;
+  onClick?: () => void;
+  indent?: boolean;
+  expandToggle?: React.ReactNode;
+}) {
+  return (
+    <tr
+      className={clickable ? "clickable" : indent ? "nested-ad-row" : ""}
+      onClick={onClick}
+    >
+      {COLUMNS.map(col => {
+        if (col.key === "name") {
+          const spendSpark = level !== "creative"
+            ? computeSparkline(allRecords, id, entityField as any, "spend")
+            : [];
+          return (
+            <td key={col.key} className="name-cell">
+              <div className="sparkline-cell" style={indent ? { paddingLeft: 24 } : undefined}>
+                {expandToggle}
+                <span>{name}</span>
+                {spendSpark.length > 0 && (
+                  <Sparkline data={spendSpark} color="var(--accent-profit)" />
+                )}
+              </div>
+            </td>
+          );
+        }
+
+        const value = (item as unknown as Record<string, unknown>)[col.key];
+        const formatted = col.format(value);
+
+        let colourClass = "metric-neutral";
+        if (col.colourable && value != null) {
+          const direction = METRIC_DIRECTIONS[col.key];
+          if (direction && direction !== "neutral") {
+            const avg = (avgMetrics as unknown as Record<string, unknown>)[col.key] as number | null;
+            const colour = getMetricColour(value as number, avg, direction);
+            colourClass = `metric-${colour}`;
+          }
+        }
+
+        return (
+          <td
+            key={col.key}
+            className={colourClass}
+            style={{ textAlign: col.align }}
+          >
+            {formatted}
+          </td>
+        );
+      })}
+    </tr>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// MAIN COMPONENT
+// ═══════════════════════════════════════════════════════════════════
+
 export default function CampaignTable({
   items,
   level,
@@ -112,6 +196,8 @@ export default function CampaignTable({
   allRecords,
   dateRange,
 }: Props) {
+  const [expandedAdSets, setExpandedAdSets] = useState<Set<string>>(new Set());
+
   // Compute overall average metrics for conditional colouring
   const avgMetrics = useMemo(() => computeOverallMetrics(allRecords), [allRecords]);
 
@@ -121,20 +207,40 @@ export default function CampaignTable({
     [items, sortField, sortDirection]
   );
 
+  // Pre-compute ads for each ad set when at adSet level
+  const adsByAdSet = useMemo(() => {
+    if (level !== "adSet") return new Map<string, AdSummary[]>();
+    const map = new Map<string, AdSummary[]>();
+    for (const item of sortedItems) {
+      const adSet = item as AdSetSummary;
+      const ads = aggregateAds(allRecords, adSet.adSetId);
+      // Sort nested ads by the same field
+      const sorted = sortItems(
+        ads as unknown as Record<string, unknown>[],
+        sortField,
+        sortDirection
+      ) as unknown as AdSummary[];
+      map.set(adSet.adSetId, sorted);
+    }
+    return map;
+  }, [level, sortedItems, allRecords, sortField, sortDirection]);
+
   // Get name and entity field based on drill level
-  const getItemName = useCallback((item: AnyItem): string => {
-    if ("creativeName" in item && level === "creative") return (item as CreativeSummary).creativeName;
-    if ("campaignName" in item && level === "campaign") return (item as CampaignSummary).campaignName;
-    if ("adSetName" in item && level === "adSet") return (item as AdSetSummary).adSetName;
-    if ("adName" in item && level === "ad") return (item as AdSummary).adName;
+  const getItemName = useCallback((item: AnyItem, itemLevel?: DrillLevel): string => {
+    const l = itemLevel || level;
+    if ("creativeName" in item && l === "creative") return (item as CreativeSummary).creativeName;
+    if ("campaignName" in item && l === "campaign") return (item as CampaignSummary).campaignName;
+    if ("adSetName" in item && l === "adSet") return (item as AdSetSummary).adSetName;
+    if ("adName" in item && l === "ad") return (item as AdSummary).adName;
     return "—";
   }, [level]);
 
-  const getEntityId = useCallback((item: AnyItem): string => {
-    if ("creativeName" in item && level === "creative") return (item as CreativeSummary).creativeName;
-    if ("campaignId" in item && level === "campaign") return (item as CampaignSummary).campaignId;
-    if ("adSetId" in item && level === "adSet") return (item as AdSetSummary).adSetId;
-    if ("adId" in item && level === "ad") return (item as AdSummary).adId;
+  const getEntityId = useCallback((item: AnyItem, itemLevel?: DrillLevel): string => {
+    const l = itemLevel || level;
+    if ("creativeName" in item && l === "creative") return (item as CreativeSummary).creativeName;
+    if ("campaignId" in item && l === "campaign") return (item as CampaignSummary).campaignId;
+    if ("adSetId" in item && l === "adSet") return (item as AdSetSummary).adSetId;
+    if ("adId" in item && l === "ad") return (item as AdSummary).adId;
     return "";
   }, [level]);
 
@@ -143,26 +249,73 @@ export default function CampaignTable({
     : level === "ad" ? "adId"
     : "campaignId";
 
-  const canDrillDown = level === "campaign" || level === "adSet";
+  const canDrillDown = level === "campaign";
+
+  // Toggle expand/collapse for an ad set
+  const toggleAdSet = useCallback((adSetId: string) => {
+    setExpandedAdSets(prev => {
+      const next = new Set(prev);
+      if (next.has(adSetId)) {
+        next.delete(adSetId);
+      } else {
+        next.add(adSetId);
+      }
+      return next;
+    });
+  }, []);
+
+  // Expand/collapse all
+  const toggleAllAdSets = useCallback(() => {
+    if (expandedAdSets.size === sortedItems.length) {
+      setExpandedAdSets(new Set());
+    } else {
+      setExpandedAdSets(new Set(sortedItems.map(item => getEntityId(item))));
+    }
+  }, [expandedAdSets.size, sortedItems, getEntityId]);
 
   // CSV export handler
   const handleExport = useCallback(() => {
     const headers = COLUMNS.map(c => c.label);
-    const rows = sortedItems.map(item => [
-      getItemName(item),
-      item.spend,
-      item.impressions,
-      item.linkClicks,
-      item.ctr,
-      item.cpc,
-      item.cpm,
-      item.conversions,
-      item.costPerConversion,
-      item.roas,
-    ]);
+    const rows: (string | number | null)[][] = [];
+
+    for (const item of sortedItems) {
+      rows.push([
+        getItemName(item),
+        item.spend,
+        item.impressions,
+        item.linkClicks,
+        item.ctr,
+        item.cpc,
+        item.cpm,
+        item.conversions,
+        item.costPerConversion,
+        item.roas,
+      ]);
+
+      // Include nested ads in export when at adSet level
+      if (level === "adSet") {
+        const adSetId = (item as AdSetSummary).adSetId;
+        const ads = adsByAdSet.get(adSetId) || [];
+        for (const ad of ads) {
+          rows.push([
+            `  └ ${ad.adName}`,
+            ad.spend,
+            ad.impressions,
+            ad.linkClicks,
+            ad.ctr,
+            ad.cpc,
+            ad.cpm,
+            ad.conversions,
+            ad.costPerConversion,
+            ad.roas,
+          ]);
+        }
+      }
+    }
+
     const filename = `fb-ads-${level}-${dateRange.start}-to-${dateRange.end}.csv`;
     exportTableAsCSV(headers, rows, filename);
-  }, [sortedItems, level, dateRange, getItemName]);
+  }, [sortedItems, level, dateRange, getItemName, adsByAdSet]);
 
   // Level label
   const levelLabel = level === "campaign" ? "Campaigns"
@@ -191,6 +344,15 @@ export default function CampaignTable({
           {levelLabel} ({sortedItems.length})
         </span>
         <div className="data-table-actions">
+          {level === "adSet" && (
+            <button
+              className="btn-export"
+              onClick={toggleAllAdSets}
+              style={{ marginRight: 4 }}
+            >
+              {expandedAdSets.size === sortedItems.length ? "Collapse All" : "Expand All"}
+            </button>
+          )}
           <button className="btn-export" onClick={handleExport}>
             ↓ Export CSV
           </button>
@@ -220,56 +382,47 @@ export default function CampaignTable({
           {sortedItems.map((item) => {
             const id = getEntityId(item);
             const name = getItemName(item);
+            const isAdSetLevel = level === "adSet";
+            const isExpanded = isAdSetLevel && expandedAdSets.has(id);
+            const ads = isAdSetLevel ? (adsByAdSet.get(id) || []) : [];
 
             return (
-              <tr
-                key={id}
-                className={canDrillDown ? "clickable" : ""}
-                onClick={() => canDrillDown && onDrillDown(item)}
-              >
-                {COLUMNS.map(col => {
-                  if (col.key === "name") {
-                    // Name column with sparkline
-                    const spendSpark = level !== "creative"
-                      ? computeSparkline(allRecords, id, entityField as any, "spend")
-                      : [];
-                    return (
-                      <td key={col.key} className="name-cell">
-                        <div className="sparkline-cell">
-                          <span>{name}</span>
-                          {spendSpark.length > 0 && (
-                            <Sparkline data={spendSpark} color="var(--accent-profit)" />
-                          )}
-                        </div>
-                      </td>
-                    );
-                  }
-
-                  const value = (item as unknown as Record<string, unknown>)[col.key];
-                  const formatted = col.format(value);
-
-                  // Conditional colouring
-                  let colourClass = "metric-neutral";
-                  if (col.colourable && value != null) {
-                    const direction = METRIC_DIRECTIONS[col.key];
-                    if (direction && direction !== "neutral") {
-                      const avg = (avgMetrics as unknown as Record<string, unknown>)[col.key] as number | null;
-                      const colour = getMetricColour(value as number, avg, direction);
-                      colourClass = `metric-${colour}`;
-                    }
-                  }
-
-                  return (
-                    <td
-                      key={col.key}
-                      className={colourClass}
-                      style={{ textAlign: col.align }}
+              <React.Fragment key={id}>
+                <MetricRow
+                  item={item}
+                  name={name}
+                  id={id}
+                  entityField={entityField}
+                  level={level}
+                  allRecords={allRecords}
+                  avgMetrics={avgMetrics}
+                  clickable={canDrillDown}
+                  onClick={canDrillDown ? () => onDrillDown(item) : isAdSetLevel ? () => toggleAdSet(id) : undefined}
+                  expandToggle={isAdSetLevel ? (
+                    <button
+                      className="expand-toggle"
+                      onClick={(e) => { e.stopPropagation(); toggleAdSet(id); }}
+                      aria-label={isExpanded ? "Collapse" : "Expand"}
                     >
-                      {formatted}
-                    </td>
-                  );
-                })}
-              </tr>
+                      <span className={`expand-arrow ${isExpanded ? "expanded" : ""}`}>▶</span>
+                    </button>
+                  ) : undefined}
+                />
+                {isExpanded && ads.map(ad => (
+                  <MetricRow
+                    key={ad.adId}
+                    item={ad}
+                    name={ad.adName}
+                    id={ad.adId}
+                    entityField="adId"
+                    level="ad"
+                    allRecords={allRecords}
+                    avgMetrics={avgMetrics}
+                    clickable={false}
+                    indent
+                  />
+                ))}
+              </React.Fragment>
             );
           })}
         </tbody>

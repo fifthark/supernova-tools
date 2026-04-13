@@ -153,13 +153,27 @@ export default function FBAdsPage() {
     [filteredRecords]
   );
 
-  // Overall metrics
+  // Records scoped to current drilldown context
+  const drilldownRecords = useMemo(() => {
+    if (drilldown.level === "campaign" || drilldown.level === "creative") {
+      return filteredRecords;
+    }
+    if (drilldown.level === "adSet" && drilldown.campaignId) {
+      return filteredRecords.filter(r => r.campaignId === drilldown.campaignId);
+    }
+    if (drilldown.level === "ad" && drilldown.adSetId) {
+      return filteredRecords.filter(r => r.adSetId === drilldown.adSetId);
+    }
+    return filteredRecords;
+  }, [filteredRecords, drilldown]);
+
+  // Overall metrics (scoped to drilldown)
   const summaryMetrics = useMemo(
-    () => computeOverallMetrics(filteredRecords),
-    [filteredRecords]
+    () => computeOverallMetrics(drilldownRecords),
+    [drilldownRecords]
   );
 
-  // Previous-period metrics for delta chips
+  // Previous-period metrics for delta chips (scoped to drilldown)
   const previousMetrics = useMemo(() => {
     const start = new Date(dateRange.start + "T00:00:00");
     const end = new Date(dateRange.end + "T00:00:00");
@@ -175,17 +189,24 @@ export default function FBAdsPage() {
       end: prevEnd.toISOString().slice(0, 10),
     };
 
-    const prevRecords = filterByDateRange(rawRecords, prevRange);
+    let prevRecords = filterByDateRange(rawRecords, prevRange);
     if (prevRecords.length === 0) return null;
 
-    let prevFiltered = prevRecords;
     if (attributionWindow) {
-      prevFiltered = filterByAttributionWindow(prevRecords, attributionWindow);
+      prevRecords = filterByAttributionWindow(prevRecords, attributionWindow);
     }
-    if (prevFiltered.length === 0) return null;
 
-    return computeOverallMetrics(prevFiltered);
-  }, [rawRecords, dateRange, attributionWindow]);
+    // Apply same drilldown filter to previous period
+    if (drilldown.level === "adSet" && drilldown.campaignId) {
+      prevRecords = prevRecords.filter(r => r.campaignId === drilldown.campaignId);
+    } else if (drilldown.level === "ad" && drilldown.adSetId) {
+      prevRecords = prevRecords.filter(r => r.adSetId === drilldown.adSetId);
+    }
+
+    if (prevRecords.length === 0) return null;
+
+    return computeOverallMetrics(prevRecords);
+  }, [rawRecords, dateRange, attributionWindow, drilldown]);
 
   // Attribution windows
   const uniqueWindows = useMemo(

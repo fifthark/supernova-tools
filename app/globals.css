@@ -952,12 +952,61 @@ html, body {
   background: var(--bg-tertiary);
 }
 
+.data-table tr.nested-ad-row + tr:not(.nested-ad-row) td {
+  border-top: 2px solid var(--border);
+}
+
 .data-table td.name-cell {
   font-weight: 500;
   color: var(--text-primary);
   max-width: 200px;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* Expand/collapse toggle for nested rows */
+.expand-toggle {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0 4px;
+  font-size: 10px;
+  color: var(--text-tertiary);
+  transition: color 0.15s;
+  flex-shrink: 0;
+}
+
+.expand-toggle:hover {
+  color: var(--text-primary);
+}
+
+.expand-arrow {
+  display: inline-block;
+  transition: transform 0.2s ease;
+}
+
+.expand-arrow.expanded {
+  transform: rotate(90deg);
+}
+
+/* Nested ad rows */
+.data-table tr.nested-ad-row {
+  background: var(--bg-tertiary);
+}
+
+.data-table tr.nested-ad-row td {
+  font-size: 12px;
+  padding: 7px 12px;
+  color: var(--text-secondary);
+}
+
+.data-table tr.nested-ad-row td.name-cell {
+  font-weight: 400;
+  color: var(--text-secondary);
+}
+
+.data-table tr.nested-ad-row:hover {
+  background: #EFEFEF;
 }
 
 /* Conditional colouring */
