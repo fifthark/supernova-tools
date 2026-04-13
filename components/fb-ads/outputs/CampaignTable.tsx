@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useCallback, useState } from "react";
+import React, { useMemo, useCallback, useEffect, useState } from "react";
 import {
   FBAdsMetrics,
   CampaignSummary,
@@ -97,6 +97,7 @@ interface Props {
   onDrillDown: (item: AnyItem) => void;
   allRecords: FBAdRecord[];
   dateRange: { start: string; end: string };
+  selectedItemId?: string | null;
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -119,6 +120,7 @@ function MetricRow({
   onClick,
   indent,
   expandToggle,
+  selected,
 }: {
   item: AnyItem;
   name: string;
@@ -131,10 +133,17 @@ function MetricRow({
   onClick?: () => void;
   indent?: boolean;
   expandToggle?: React.ReactNode;
+  selected?: boolean;
 }) {
+  const className = [
+    clickable ? "clickable" : "",
+    indent ? "nested-ad-row" : "",
+    selected ? "selected-row" : "",
+  ].filter(Boolean).join(" ");
+
   return (
     <tr
-      className={clickable ? "clickable" : indent ? "nested-ad-row" : ""}
+      className={className}
       onClick={onClick}
     >
       {COLUMNS.map(col => {
@@ -195,6 +204,7 @@ export default function CampaignTable({
   onDrillDown,
   allRecords,
   dateRange,
+  selectedItemId,
 }: Props) {
   const [expandedAdSets, setExpandedAdSets] = useState<Set<string>>(new Set());
 
@@ -225,6 +235,37 @@ export default function CampaignTable({
     return map;
   }, [level, sortedItems, allRecords, sortField, sortDirection]);
 
+  const visibleAdSetIds = useMemo(
+    () => level === "adSet"
+      ? sortedItems.map(item => (item as AdSetSummary).adSetId)
+      : [],
+    [level, sortedItems]
+  );
+
+  const expandedVisibleCount = useMemo(
+    () => visibleAdSetIds.filter(id => expandedAdSets.has(id)).length,
+    [visibleAdSetIds, expandedAdSets]
+  );
+
+  const allVisibleExpanded = level === "adSet"
+    && visibleAdSetIds.length > 0
+    && expandedVisibleCount === visibleAdSetIds.length;
+
+  useEffect(() => {
+    if (level !== "adSet") {
+      if (expandedAdSets.size > 0) {
+        setExpandedAdSets(new Set());
+      }
+      return;
+    }
+
+    const visibleIds = new Set(visibleAdSetIds);
+    setExpandedAdSets(prev => {
+      const next = new Set(Array.from(prev).filter(id => visibleIds.has(id)));
+      return next.size === prev.size ? prev : next;
+    });
+  }, [level, visibleAdSetIds, expandedAdSets.size]);
+
   // Get name and entity field based on drill level
   const getItemName = useCallback((item: AnyItem, itemLevel?: DrillLevel): string => {
     const l = itemLevel || level;
@@ -249,7 +290,7 @@ export default function CampaignTable({
     : level === "ad" ? "adId"
     : "campaignId";
 
-  const canDrillDown = level === "campaign";
+  const canDrillDown = level === "campaign" || level === "adSet";
 
   // Toggle expand/collapse for an ad set
   const toggleAdSet = useCallback((adSetId: string) => {
@@ -266,12 +307,12 @@ export default function CampaignTable({
 
   // Expand/collapse all
   const toggleAllAdSets = useCallback(() => {
-    if (expandedAdSets.size === sortedItems.length) {
+    if (allVisibleExpanded) {
       setExpandedAdSets(new Set());
     } else {
-      setExpandedAdSets(new Set(sortedItems.map(item => getEntityId(item))));
+      setExpandedAdSets(new Set(visibleAdSetIds));
     }
-  }, [expandedAdSets.size, sortedItems, getEntityId]);
+  }, [allVisibleExpanded, visibleAdSetIds]);
 
   // CSV export handler
   const handleExport = useCallback(() => {
@@ -350,7 +391,7 @@ export default function CampaignTable({
               onClick={toggleAllAdSets}
               style={{ marginRight: 4 }}
             >
-              {expandedAdSets.size === sortedItems.length ? "Collapse All" : "Expand All"}
+              {allVisibleExpanded ? "Collapse All" : "Expand All"}
             </button>
           )}
           <button className="btn-export" onClick={handleExport}>
@@ -384,6 +425,7 @@ export default function CampaignTable({
             const name = getItemName(item);
             const isAdSetLevel = level === "adSet";
             const isExpanded = isAdSetLevel && expandedAdSets.has(id);
+            const isSelected = selectedItemId != null && selectedItemId === id;
             const ads = isAdSetLevel ? (adsByAdSet.get(id) || []) : [];
 
             return (
@@ -398,6 +440,7 @@ export default function CampaignTable({
                   avgMetrics={avgMetrics}
                   clickable={canDrillDown}
                   onClick={canDrillDown ? () => onDrillDown(item) : isAdSetLevel ? () => toggleAdSet(id) : undefined}
+                  selected={isSelected}
                   expandToggle={isAdSetLevel ? (
                     <button
                       className="expand-toggle"

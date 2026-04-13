@@ -844,6 +844,40 @@ html, body {
   font-size: 11px;
 }
 
+.scope-badge {
+  margin-bottom: 16px;
+  padding: 14px 16px;
+  border: 1px solid rgba(5, 150, 105, 0.18);
+  border-radius: var(--radius);
+  background:
+    linear-gradient(135deg, rgba(5, 150, 105, 0.08), rgba(255, 255, 255, 0.96)),
+    var(--bg-secondary);
+  box-shadow: var(--shadow-card);
+}
+
+.scope-badge-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent-profit);
+  margin-bottom: 6px;
+}
+
+.scope-badge-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.scope-badge-subtitle {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  max-width: 780px;
+}
+
 /* Summary Cards Grid */
 .summary-cards {
   display: grid;
@@ -950,6 +984,18 @@ html, body {
 
 .data-table tr.clickable:hover {
   background: var(--bg-tertiary);
+}
+
+.data-table tr.selected-row {
+  background: rgba(5, 150, 105, 0.08);
+}
+
+.data-table tr.selected-row td.name-cell {
+  color: var(--accent-profit);
+}
+
+.data-table tr.clickable.selected-row:hover {
+  background: rgba(5, 150, 105, 0.12);
 }
 
 .data-table tr.nested-ad-row + tr:not(.nested-ad-row) td {

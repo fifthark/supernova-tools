@@ -158,6 +158,9 @@ export default function FBAdsPage() {
     if (drilldown.level === "campaign" || drilldown.level === "creative") {
       return filteredRecords;
     }
+    if (drilldown.level === "adSet" && drilldown.adSetId) {
+      return filteredRecords.filter(r => r.adSetId === drilldown.adSetId);
+    }
     if (drilldown.level === "adSet" && drilldown.campaignId) {
       return filteredRecords.filter(r => r.campaignId === drilldown.campaignId);
     }
@@ -170,6 +173,11 @@ export default function FBAdsPage() {
   // Overall metrics (scoped to drilldown)
   const summaryMetrics = useMemo(
     () => computeOverallMetrics(drilldownRecords),
+    [drilldownRecords]
+  );
+
+  const scopedMetricAvailability = useMemo<MetricAvailability>(
+    () => buildMetricAvailability(drilldownRecords),
     [drilldownRecords]
   );
 
@@ -197,7 +205,9 @@ export default function FBAdsPage() {
     }
 
     // Apply same drilldown filter to previous period
-    if (drilldown.level === "adSet" && drilldown.campaignId) {
+    if (drilldown.level === "adSet" && drilldown.adSetId) {
+      prevRecords = prevRecords.filter(r => r.adSetId === drilldown.adSetId);
+    } else if (drilldown.level === "adSet" && drilldown.campaignId) {
       prevRecords = prevRecords.filter(r => r.campaignId === drilldown.campaignId);
     } else if (drilldown.level === "ad" && drilldown.adSetId) {
       prevRecords = prevRecords.filter(r => r.adSetId === drilldown.adSetId);
@@ -214,10 +224,10 @@ export default function FBAdsPage() {
     [rawRecords]
   );
 
-  // Daily time series (for trend charts)
+  // Daily time series (scoped to current drilldown)
   const dailyTimeSeries = useMemo(
-    () => computeDailyTimeSeries(filteredRecords),
-    [filteredRecords]
+    () => computeDailyTimeSeries(drilldownRecords),
+    [drilldownRecords]
   );
 
   // Creative summaries
@@ -226,29 +236,29 @@ export default function FBAdsPage() {
     [filteredRecords]
   );
 
-  // Platform & Placement
+  // Platform & Placement (scoped to current drilldown)
   const platformSummaries = useMemo(
-    () => metricAvailability.platform ? aggregateByPlatform(filteredRecords) : [],
-    [filteredRecords, metricAvailability.platform]
+    () => scopedMetricAvailability.platform ? aggregateByPlatform(drilldownRecords) : [],
+    [drilldownRecords, scopedMetricAvailability.platform]
   );
 
   const placementSummaries = useMemo(
-    () => metricAvailability.placement ? aggregateByPlacement(filteredRecords) : [],
-    [filteredRecords, metricAvailability.placement]
+    () => scopedMetricAvailability.placement ? aggregateByPlacement(drilldownRecords) : [],
+    [drilldownRecords, scopedMetricAvailability.placement]
   );
 
-  // Heatmap
-  const showHeatmap = useMemo(() => hasHourlyData(filteredRecords), [filteredRecords]);
+  // Heatmap (scoped to current drilldown)
+  const showHeatmap = useMemo(() => hasHourlyData(drilldownRecords), [drilldownRecords]);
   const heatmapData = useMemo(
-    () => showHeatmap ? computeHeatmap(filteredRecords) : [],
-    [filteredRecords, showHeatmap]
+    () => showHeatmap ? computeHeatmap(drilldownRecords) : [],
+    [drilldownRecords, showHeatmap]
   );
 
-  // Recommendations
+  // Recommendations (scoped to current drilldown)
   const insightsCap = drilldown.level === "campaign" ? MAX_INSIGHTS_TOP : MAX_INSIGHTS_DRILL;
   const insights = useMemo(
-    () => generateInsights(filteredRecords, dateRange, metricAvailability, insightsCap),
-    [filteredRecords, dateRange, metricAvailability, insightsCap]
+    () => generateInsights(drilldownRecords, dateRange, scopedMetricAvailability, insightsCap),
+    [drilldownRecords, dateRange, scopedMetricAvailability, insightsCap]
   );
 
   // Current drill level items
@@ -303,11 +313,12 @@ export default function FBAdsPage() {
       setSortDirection("desc");
     } else if (drilldown.level === "adSet") {
       const adSet = item as AdSetSummary;
+      const isSameAdSet = drilldown.adSetId === adSet.adSetId;
       setDrilldown({
         ...drilldown,
-        level: "ad",
-        adSetId: adSet.adSetId,
-        adSetName: adSet.adSetName,
+        level: "adSet",
+        adSetId: isSameAdSet ? null : adSet.adSetId,
+        adSetName: isSameAdSet ? null : adSet.adSetName,
       });
       setSortField("spend");
       setSortDirection("desc");
@@ -324,6 +335,33 @@ export default function FBAdsPage() {
 
   const hasData = rawRecords.length > 0;
   const isCreativeView = drilldown.level === "creative";
+  const scopeMeta = useMemo(() => {
+    if (drilldown.level === "creative") {
+      return {
+        title: "Creative Performance",
+        subtitle: "Account-wide creative results for the current date range and attribution filters.",
+      };
+    }
+
+    if (drilldown.level === "campaign") {
+      return {
+        title: "All Campaigns",
+        subtitle: "Summary cards, insights, charts, and breakdowns reflect the full filtered account view.",
+      };
+    }
+
+    if (drilldown.level === "adSet" && drilldown.adSetId) {
+      return {
+        title: `Ad Set: ${drilldown.adSetName || drilldown.adSetId}`,
+        subtitle: `Scoped inside ${drilldown.campaignName || drilldown.campaignId}. Every panel now reflects this ad set only.`,
+      };
+    }
+
+    return {
+      title: `Campaign: ${drilldown.campaignName || drilldown.campaignId}`,
+      subtitle: "You are viewing all ad sets within this campaign. Select one ad set to narrow the dashboard further.",
+    };
+  }, [drilldown]);
 
   return (
     <div className="fb-ads-container">
@@ -372,7 +410,7 @@ export default function FBAdsPage() {
           {/* Insights Panel — actionable recommendations first */}
           <InsightsPanel
             insights={insights}
-            availability={metricAvailability}
+            availability={scopedMetricAvailability}
           />
 
           {/* Breadcrumb */}
@@ -380,6 +418,12 @@ export default function FBAdsPage() {
             drilldown={drilldown}
             onNavigate={handleNavigate}
           />
+
+          <div className="scope-badge">
+            <div className="scope-badge-label">Current Scope</div>
+            <div className="scope-badge-title">{scopeMeta.title}</div>
+            <div className="scope-badge-subtitle">{scopeMeta.subtitle}</div>
+          </div>
 
           {/* Summary Cards with delta chips */}
           <SummaryCards
@@ -389,7 +433,7 @@ export default function FBAdsPage() {
           />
 
           {/* Platform & Placement Breakdown */}
-          {(metricAvailability.platform || metricAvailability.placement) && (
+          {(scopedMetricAvailability.platform || scopedMetricAvailability.placement) && (
             <PlatformBreakdown
               platforms={platformSummaries}
               placements={placementSummaries}
@@ -441,6 +485,7 @@ export default function FBAdsPage() {
               onDrillDown={handleDrillDown}
               allRecords={filteredRecords}
               dateRange={dateRange}
+              selectedItemId={drilldown.level === "adSet" ? drilldown.adSetId : null}
             />
           )}
         </>

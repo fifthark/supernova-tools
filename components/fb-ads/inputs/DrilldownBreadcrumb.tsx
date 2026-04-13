@@ -14,6 +14,11 @@ export default function DrilldownBreadcrumb({ drilldown, onNavigate }: Props) {
   const goToAdSets = () =>
     onNavigate({ ...drilldown, level: "adSet", adSetId: null, adSetName: null });
 
+  const goToSelectedAdSet = () => {
+    if (drilldown.level === "adSet" && drilldown.adSetId) return;
+    onNavigate({ ...drilldown, level: "adSet" });
+  };
+
   const goToCreative = () =>
     onNavigate({ level: "creative", campaignId: null, campaignName: null, adSetId: null, adSetName: null });
 
@@ -27,7 +32,7 @@ export default function DrilldownBreadcrumb({ drilldown, onNavigate }: Props) {
         <span className="breadcrumb-active">Creative Performance</span>
       )}
 
-      {drilldown.level === "adSet" && (
+      {drilldown.level === "adSet" && !drilldown.adSetId && (
         <>
           <span className="breadcrumb-item" onClick={goToCampaigns}>
             All Campaigns
@@ -39,13 +44,29 @@ export default function DrilldownBreadcrumb({ drilldown, onNavigate }: Props) {
         </>
       )}
 
-      {drilldown.level === "ad" && (
+      {drilldown.level === "adSet" && drilldown.adSetId && (
         <>
           <span className="breadcrumb-item" onClick={goToCampaigns}>
             All Campaigns
           </span>
           <span className="breadcrumb-sep">›</span>
           <span className="breadcrumb-item" onClick={goToAdSets}>
+            {drilldown.campaignName || drilldown.campaignId}
+          </span>
+          <span className="breadcrumb-sep">›</span>
+          <span className="breadcrumb-active">
+            {drilldown.adSetName || drilldown.adSetId}
+          </span>
+        </>
+      )}
+
+      {drilldown.level === "ad" && (
+        <>
+          <span className="breadcrumb-item" onClick={goToCampaigns}>
+            All Campaigns
+          </span>
+          <span className="breadcrumb-sep">›</span>
+          <span className="breadcrumb-item" onClick={goToSelectedAdSet}>
             {drilldown.campaignName || drilldown.campaignId}
           </span>
           <span className="breadcrumb-sep">›</span>
@@ -66,7 +87,17 @@ export default function DrilldownBreadcrumb({ drilldown, onNavigate }: Props) {
         </span>
       )}
 
-      {drilldown.level !== "campaign" && drilldown.level !== "creative" && (
+      {drilldown.level === "adSet" && drilldown.adSetId && (
+        <span
+          className="breadcrumb-item"
+          onClick={goToAdSets}
+          style={{ marginLeft: "auto", fontSize: 12 }}
+        >
+          ← Show all ad sets
+        </span>
+      )}
+
+      {drilldown.level !== "campaign" && drilldown.level !== "creative" && !(drilldown.level === "adSet" && drilldown.adSetId) && (
         <span
           className="breadcrumb-item"
           onClick={goToCampaigns}
