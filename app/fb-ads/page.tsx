@@ -17,8 +17,6 @@ import {
 import {
   computeOverallMetrics,
   aggregateCampaigns,
-  aggregateAdSets,
-  aggregateAds,
   aggregateByCreative,
   aggregateByPlatform,
   aggregateByPlacement,
@@ -31,6 +29,7 @@ import {
   hasHourlyData,
   computeHeatmap,
 } from "@/lib/fb-ads/engine";
+import { addDaysLocal, formatDateLocal, parseDateLocal } from "@/lib/fb-ads/date-utils";
 import { generateInsights } from "@/lib/fb-ads/recommendations";
 import { MAX_INSIGHTS_TOP, MAX_INSIGHTS_DRILL } from "@/lib/fb-ads/constants";
 import { validateData } from "@/lib/fb-ads/validation";
@@ -55,10 +54,10 @@ import PerformanceHeatmap from "@/components/fb-ads/charts/PerformanceHeatmap";
 
 function defaultDateRange(): DateRange {
   const now = new Date();
-  const end = now.toISOString().slice(0, 10);
-  const start = new Date(now);
-  start.setDate(start.getDate() - 30);
-  return { start: start.toISOString().slice(0, 10), end };
+  return {
+    start: formatDateLocal(addDaysLocal(now, -29)),
+    end: formatDateLocal(now),
+  };
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -153,39 +152,67 @@ export default function FBAdsPage() {
     [filteredRecords]
   );
 
+  const dataDateBounds = useMemo(() => {
+    if (rawRecords.length === 0) return null;
+    const sortedDates = rawRecords.map(r => r.date).filter(Boolean).sort();
+    return {
+      min: sortedDates[0],
+      max: sortedDates[sortedDates.length - 1],
+    };
+  }, [rawRecords]);
+
+  // Records scoped to current selection context
+  const drilldownRecords = useMemo(() => {
+    if (drilldown.level === "creative") return filteredRecords;
+    if (drilldown.adSetId) {
+      return filteredRecords.filter(r => r.adSetId === drilldown.adSetId);
+    }
+    if (drilldown.campaignId) {
+      return filteredRecords.filter(r => r.campaignId === drilldown.campaignId);
+    }
+    return filteredRecords;
+  }, [filteredRecords, drilldown]);
+
+  const scopedMetricAvailability = useMemo<MetricAvailability>(
+    () => buildMetricAvailability(drilldownRecords),
+    [drilldownRecords]
+  );
+
   // Overall metrics
   const summaryMetrics = useMemo(
-    () => computeOverallMetrics(filteredRecords),
-    [filteredRecords]
+    () => computeOverallMetrics(drilldownRecords),
+    [drilldownRecords]
   );
 
   // Previous-period metrics for delta chips
   const previousMetrics = useMemo(() => {
-    const start = new Date(dateRange.start + "T00:00:00");
-    const end = new Date(dateRange.end + "T00:00:00");
+    const start = parseDateLocal(dateRange.start);
+    const end = parseDateLocal(dateRange.end);
     const daysDiff = Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
 
-    const prevEnd = new Date(start);
-    prevEnd.setDate(prevEnd.getDate() - 1);
-    const prevStart = new Date(prevEnd);
-    prevStart.setDate(prevStart.getDate() - daysDiff + 1);
+    const prevEnd = addDaysLocal(start, -1);
+    const prevStart = addDaysLocal(prevEnd, -daysDiff + 1);
 
     const prevRange: DateRange = {
-      start: prevStart.toISOString().slice(0, 10),
-      end: prevEnd.toISOString().slice(0, 10),
+      start: formatDateLocal(prevStart),
+      end: formatDateLocal(prevEnd),
     };
 
-    const prevRecords = filterByDateRange(rawRecords, prevRange);
+    let prevRecords = filterByDateRange(rawRecords, prevRange);
     if (prevRecords.length === 0) return null;
 
-    let prevFiltered = prevRecords;
     if (attributionWindow) {
-      prevFiltered = filterByAttributionWindow(prevRecords, attributionWindow);
+      prevRecords = filterByAttributionWindow(prevRecords, attributionWindow);
     }
-    if (prevFiltered.length === 0) return null;
+    if (drilldown.adSetId) {
+      prevRecords = prevRecords.filter(r => r.adSetId === drilldown.adSetId);
+    } else if (drilldown.campaignId) {
+      prevRecords = prevRecords.filter(r => r.campaignId === drilldown.campaignId);
+    }
+    if (prevRecords.length === 0) return null;
 
-    return computeOverallMetrics(prevFiltered);
-  }, [rawRecords, dateRange, attributionWindow]);
+    return computeOverallMetrics(prevRecords);
+  }, [rawRecords, dateRange, attributionWindow, drilldown]);
 
   // Attribution windows
   const uniqueWindows = useMemo(
@@ -195,8 +222,8 @@ export default function FBAdsPage() {
 
   // Daily time series (for trend charts)
   const dailyTimeSeries = useMemo(
-    () => computeDailyTimeSeries(filteredRecords),
-    [filteredRecords]
+    () => computeDailyTimeSeries(drilldownRecords),
+    [drilldownRecords]
   );
 
   // Creative summaries
@@ -207,49 +234,39 @@ export default function FBAdsPage() {
 
   // Platform & Placement
   const platformSummaries = useMemo(
-    () => metricAvailability.platform ? aggregateByPlatform(filteredRecords) : [],
-    [filteredRecords, metricAvailability.platform]
+    () => scopedMetricAvailability.platform ? aggregateByPlatform(drilldownRecords) : [],
+    [drilldownRecords, scopedMetricAvailability.platform]
   );
 
   const placementSummaries = useMemo(
-    () => metricAvailability.placement ? aggregateByPlacement(filteredRecords) : [],
-    [filteredRecords, metricAvailability.placement]
+    () => scopedMetricAvailability.placement ? aggregateByPlacement(drilldownRecords) : [],
+    [drilldownRecords, scopedMetricAvailability.placement]
   );
 
   // Heatmap
-  const showHeatmap = useMemo(() => hasHourlyData(filteredRecords), [filteredRecords]);
+  const showHeatmap = useMemo(() => hasHourlyData(drilldownRecords), [drilldownRecords]);
   const heatmapData = useMemo(
-    () => showHeatmap ? computeHeatmap(filteredRecords) : [],
-    [filteredRecords, showHeatmap]
+    () => showHeatmap ? computeHeatmap(drilldownRecords) : [],
+    [drilldownRecords, showHeatmap]
   );
 
   // Recommendations
-  const insightsCap = drilldown.level === "campaign" ? MAX_INSIGHTS_TOP : MAX_INSIGHTS_DRILL;
+  const insightsCap = drilldown.campaignId || drilldown.adSetId ? MAX_INSIGHTS_DRILL : MAX_INSIGHTS_TOP;
   const insights = useMemo(
-    () => generateInsights(filteredRecords, dateRange, metricAvailability, insightsCap),
-    [filteredRecords, dateRange, metricAvailability, insightsCap]
+    () => generateInsights(drilldownRecords, dateRange, scopedMetricAvailability, insightsCap),
+    [drilldownRecords, dateRange, scopedMetricAvailability, insightsCap]
   );
 
   // Current drill level items
   const currentItems = useMemo(() => {
-    switch (drilldown.level) {
-      case "campaign":
-        return aggregateCampaigns(filteredRecords);
-      case "adSet":
-        return aggregateAdSets(filteredRecords, drilldown.campaignId!);
-      case "ad":
-        return aggregateAds(filteredRecords, drilldown.adSetId!);
-      case "creative":
-        return aggregateByCreative(filteredRecords);
-    }
-  }, [filteredRecords, drilldown]);
+    return aggregateCampaigns(filteredRecords);
+  }, [filteredRecords]);
 
   // Determine active objective for summary cards
   const activeObjective = useMemo(() => {
-    if (drilldown.level === "campaign" || drilldown.level === "creative") {
+    if (!drilldown.campaignId || drilldown.level === "creative") {
       return null;  // Mixed objectives at top level
     }
-    // When drilled into a campaign, use that campaign's objective
     const campaignRecords = filteredRecords.filter(r => r.campaignId === drilldown.campaignId);
     if (campaignRecords.length > 0 && campaignRecords[0].campaignObjective) {
       return campaignRecords[0].campaignObjective;
@@ -268,29 +285,30 @@ export default function FBAdsPage() {
     }
   }, [sortField]);
 
-  const handleDrillDown = useCallback((item: any) => {
-    if (drilldown.level === "campaign") {
-      const campaign = item as CampaignSummary;
+  const handleDrillDown = useCallback((item: CampaignSummary | AdSetSummary) => {
+    if ("adSetId" in item) {
+      const adSet = item as AdSetSummary;
+      const isSameAdSet = drilldown.adSetId === adSet.adSetId;
       setDrilldown({
-        level: "adSet",
-        campaignId: campaign.campaignId,
-        campaignName: campaign.campaignName,
+        level: isSameAdSet ? "adSet" : "ad",
+        campaignId: adSet.campaignId,
+        campaignName: adSet.campaignName,
+        adSetId: isSameAdSet ? null : adSet.adSetId,
+        adSetName: isSameAdSet ? null : adSet.adSetName,
+      });
+    } else {
+      const campaign = item as CampaignSummary;
+      const isSameCampaign = drilldown.campaignId === campaign.campaignId && drilldown.adSetId == null;
+      setDrilldown({
+        level: isSameCampaign ? "campaign" : "adSet",
+        campaignId: isSameCampaign ? null : campaign.campaignId,
+        campaignName: isSameCampaign ? null : campaign.campaignName,
         adSetId: null,
         adSetName: null,
       });
-      setSortField("spend");
-      setSortDirection("desc");
-    } else if (drilldown.level === "adSet") {
-      const adSet = item as AdSetSummary;
-      setDrilldown({
-        ...drilldown,
-        level: "ad",
-        adSetId: adSet.adSetId,
-        adSetName: adSet.adSetName,
-      });
-      setSortField("spend");
-      setSortDirection("desc");
     }
+    setSortField("spend");
+    setSortDirection("desc");
   }, [drilldown]);
 
   const handleNavigate = useCallback((newDrilldown: DrilldownState) => {
@@ -321,6 +339,8 @@ export default function FBAdsPage() {
             <DateRangePicker
               dateRange={dateRange}
               onDateRangeChange={setDateRange}
+              minDate={dataDateBounds?.min || null}
+              maxDate={dataDateBounds?.max || null}
             />
           </div>
         )}
@@ -351,7 +371,7 @@ export default function FBAdsPage() {
           {/* Insights Panel — actionable recommendations first */}
           <InsightsPanel
             insights={insights}
-            availability={metricAvailability}
+            availability={scopedMetricAvailability}
           />
 
           {/* Breadcrumb */}
@@ -368,7 +388,7 @@ export default function FBAdsPage() {
           />
 
           {/* Platform & Placement Breakdown */}
-          {(metricAvailability.platform || metricAvailability.placement) && (
+          {(scopedMetricAvailability.platform || scopedMetricAvailability.placement) && (
             <PlatformBreakdown
               platforms={platformSummaries}
               placements={placementSummaries}
@@ -413,13 +433,15 @@ export default function FBAdsPage() {
           ) : (
             <CampaignTable
               items={currentItems}
-              level={drilldown.level}
+              level="campaign"
               sortField={sortField}
               sortDirection={sortDirection}
               onSort={handleSort}
               onDrillDown={handleDrillDown}
               allRecords={filteredRecords}
               dateRange={dateRange}
+              selectedCampaignId={drilldown.campaignId}
+              selectedAdSetId={drilldown.adSetId}
             />
           )}
         </>

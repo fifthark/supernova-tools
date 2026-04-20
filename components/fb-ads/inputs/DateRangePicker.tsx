@@ -1,34 +1,35 @@
 "use client";
 
 import { DateRange } from "@/lib/fb-ads/types";
+import { addDaysLocal, formatDateLocal, parseDateLocal } from "@/lib/fb-ads/date-utils";
 
 interface Props {
   dateRange: DateRange;
   onDateRangeChange: (range: DateRange) => void;
+  minDate?: string | null;
+  maxDate?: string | null;
 }
 
-function getPresetRange(days: number): DateRange {
-  const now = new Date();
-  const end = now.toISOString().slice(0, 10);
+function getPresetRange(days: number, referenceEnd: string): DateRange {
+  const endDate = parseDateLocal(referenceEnd);
+  const end = formatDateLocal(endDate);
 
   if (days > 0) {
-    const start = new Date(now);
-    start.setDate(start.getDate() - days);
-    return { start: start.toISOString().slice(0, 10), end };
+    return { start: formatDateLocal(addDaysLocal(endDate, -days + 1)), end };
   }
 
   if (days === 0) {
     // This month
-    const start = new Date(now.getFullYear(), now.getMonth(), 1);
-    return { start: start.toISOString().slice(0, 10), end };
+    const start = new Date(endDate.getFullYear(), endDate.getMonth(), 1, 12);
+    return { start: formatDateLocal(start), end };
   }
 
   // Last month
-  const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
+  const lastMonth = new Date(endDate.getFullYear(), endDate.getMonth() - 1, 1, 12);
+  const lastMonthEnd = new Date(endDate.getFullYear(), endDate.getMonth(), 0, 12);
   return {
-    start: lastMonth.toISOString().slice(0, 10),
-    end: lastMonthEnd.toISOString().slice(0, 10),
+    start: formatDateLocal(lastMonth),
+    end: formatDateLocal(lastMonthEnd),
   };
 }
 
@@ -39,7 +40,9 @@ const presets = [
   { label: "Last month", days: -1 },
 ];
 
-export default function DateRangePicker({ dateRange, onDateRangeChange }: Props) {
+export default function DateRangePicker({ dateRange, onDateRangeChange, minDate, maxDate }: Props) {
+  const presetEnd = maxDate || dateRange.end || formatDateLocal(new Date());
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
       <div className="date-range-row">
@@ -47,6 +50,8 @@ export default function DateRangePicker({ dateRange, onDateRangeChange }: Props)
           type="date"
           className="date-input"
           value={dateRange.start}
+          min={minDate || undefined}
+          max={dateRange.end || maxDate || undefined}
           onChange={e => onDateRangeChange({ ...dateRange, start: e.target.value })}
         />
         <span style={{ color: "var(--text-tertiary)", fontSize: 13 }}>to</span>
@@ -54,6 +59,8 @@ export default function DateRangePicker({ dateRange, onDateRangeChange }: Props)
           type="date"
           className="date-input"
           value={dateRange.end}
+          min={dateRange.start || minDate || undefined}
+          max={maxDate || undefined}
           onChange={e => onDateRangeChange({ ...dateRange, end: e.target.value })}
         />
       </div>
@@ -62,7 +69,7 @@ export default function DateRangePicker({ dateRange, onDateRangeChange }: Props)
           <button
             key={p.label}
             className="date-preset-btn"
-            onClick={() => onDateRangeChange(getPresetRange(p.days))}
+            onClick={() => onDateRangeChange(getPresetRange(p.days, presetEnd))}
           >
             {p.label}
           </button>

@@ -110,7 +110,45 @@ export function generateInsights(
     }
   }
 
+  if (deduped.length === 0) {
+    const fallback = buildFallbackBenchmarkInsight(campaigns);
+    if (fallback) {
+      deduped.push(fallback);
+    }
+  }
+
   return deduped.slice(0, maxInsights);
+}
+
+function buildFallbackBenchmarkInsight(
+  campaigns: ReturnType<typeof aggregateCampaigns>,
+): Insight | null {
+  const eligibleCampaigns = campaigns.filter(
+    campaign => campaign.impressions >= MIN_IMPRESSIONS_FOR_INSIGHT && campaign.linkClicks >= MIN_CLICKS_FOR_RATE_INSIGHT
+  );
+
+  if (eligibleCampaigns.length === 0) return null;
+
+  const topCampaign = [...eligibleCampaigns].sort((a, b) => {
+    const aCtr = a.ctr ?? -1;
+    const bCtr = b.ctr ?? -1;
+    if (bCtr !== aCtr) return bCtr - aCtr;
+    return b.spend - a.spend;
+  })[0];
+
+  return {
+    id: nextId(),
+    severity: "win",
+    category: "creative",
+    title: "Benchmark campaign identified",
+    why: `${topCampaign.campaignName} is the strongest current benchmark with CTR ${fmtPctShort(topCampaign.ctr ?? 0)} across ${topCampaign.impressions.toLocaleString()} impressions.`,
+    action: "Use this campaign as your comparison baseline when reviewing nested ad sets and ads below.",
+    entityName: topCampaign.campaignName,
+    entityType: "campaign",
+    confidence: confidenceFromImpressions(topCampaign.impressions, topCampaign.ctr != null),
+    metric: "ctr",
+    value: topCampaign.ctr != null ? fmtPctShort(topCampaign.ctr) : undefined,
+  };
 }
 
 // ═══════════════════════════════════════════════════════════════════
