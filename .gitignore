@@ -12,3 +12,10 @@ out/
 .DS_Store
 *.tsbuildinfo
 next-env.d.ts
+
+# claude code scratch
+.claude/
+
+# separate codebases that may appear alongside during local dev
+# (grants lives in its own repo at ~/grants — never commit from here)
+grants/
