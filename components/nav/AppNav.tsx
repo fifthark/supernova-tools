@@ -9,6 +9,7 @@ export default function AppNav() {
   const links = [
     { href: "/", label: "Tournament Calculator" },
     { href: "/fb-ads", label: "FB Ads Dashboard" },
+    { href: "/scheduler", label: "Scheduler" },
   ];
 
   return (
