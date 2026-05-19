@@ -1,16 +1,10 @@
-import type { Block, Category, CourtIdMap, Plan } from "./types";
+import type { Block, Category, Plan } from "./types";
 
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 
-export const DEFAULT_COURT_ID_MAP: CourtIdMap = {
-  1: "C044",
-  2: "C045",
-  3: "C046",
-  4: "C047",
-  5: "C048",
-  6: "C049",
-  7: "C050",
-};
+export const DEFAULT_NUM_COURTS = 7;
+export const MIN_NUM_COURTS = 1;
+export const MAX_NUM_COURTS = 15;
 
 interface CategorySeed {
   name: string;
@@ -18,6 +12,7 @@ interface CategorySeed {
   matchCount: number;
   defaultMatchDurationMinutes: number;
   defaultBufferMinutes: number;
+  defaultStartTime?: string;
 }
 
 interface BlockSeed {
@@ -32,14 +27,14 @@ interface BlockSeed {
 }
 
 const T004_CATEGORY_SEEDS: CategorySeed[] = [
-  { name: "MS Grade2", eventCode: "MS", matchCount: 10, defaultMatchDurationMinutes: 20, defaultBufferMinutes: 5 },
-  { name: "MS Grade3", eventCode: "MS", matchCount: 6, defaultMatchDurationMinutes: 20, defaultBufferMinutes: 5 },
-  { name: "MD Grade2", eventCode: "MD", matchCount: 24, defaultMatchDurationMinutes: 20, defaultBufferMinutes: 0 },
-  { name: "WD Grade2", eventCode: "WD", matchCount: 10, defaultMatchDurationMinutes: 20, defaultBufferMinutes: 0 },
-  { name: "WD Grade3", eventCode: "WD", matchCount: 10, defaultMatchDurationMinutes: 20, defaultBufferMinutes: 0 },
-  { name: "XD Grade2", eventCode: "XD", matchCount: 12, defaultMatchDurationMinutes: 20, defaultBufferMinutes: 0 },
-  { name: "XD Grade3", eventCode: "XD", matchCount: 10, defaultMatchDurationMinutes: 20, defaultBufferMinutes: 0 },
-  { name: "XD Grade4", eventCode: "XD", matchCount: 10, defaultMatchDurationMinutes: 20, defaultBufferMinutes: 0 },
+  { name: "MS Grade2", eventCode: "MS", matchCount: 10, defaultMatchDurationMinutes: 20, defaultBufferMinutes: 5, defaultStartTime: "08:30" },
+  { name: "MS Grade3", eventCode: "MS", matchCount: 6, defaultMatchDurationMinutes: 20, defaultBufferMinutes: 5, defaultStartTime: "08:30" },
+  { name: "MD Grade2", eventCode: "MD", matchCount: 24, defaultMatchDurationMinutes: 20, defaultBufferMinutes: 0, defaultStartTime: "10:15" },
+  { name: "WD Grade2", eventCode: "WD", matchCount: 10, defaultMatchDurationMinutes: 20, defaultBufferMinutes: 0, defaultStartTime: "09:00" },
+  { name: "WD Grade3", eventCode: "WD", matchCount: 10, defaultMatchDurationMinutes: 20, defaultBufferMinutes: 0, defaultStartTime: "09:00" },
+  { name: "XD Grade2", eventCode: "XD", matchCount: 12, defaultMatchDurationMinutes: 20, defaultBufferMinutes: 0, defaultStartTime: "13:00" },
+  { name: "XD Grade3", eventCode: "XD", matchCount: 10, defaultMatchDurationMinutes: 20, defaultBufferMinutes: 0, defaultStartTime: "13:00" },
+  { name: "XD Grade4", eventCode: "XD", matchCount: 10, defaultMatchDurationMinutes: 20, defaultBufferMinutes: 0, defaultStartTime: "13:00" },
 ];
 
 const T004_BLOCK_SEEDS: BlockSeed[] = [
@@ -113,6 +108,7 @@ export function buildT004Plan(): Plan {
     matchCount: seed.matchCount,
     defaultMatchDurationMinutes: seed.defaultMatchDurationMinutes,
     defaultBufferMinutes: seed.defaultBufferMinutes,
+    defaultStartTime: seed.defaultStartTime,
   }));
 
   const idByName: Record<string, string> = {};
@@ -136,7 +132,7 @@ export function buildT004Plan(): Plan {
     schemaVersion: SCHEMA_VERSION,
     tournamentName: "T004",
     tournamentDate: "2026-05-23",
-    courtIdMap: { ...DEFAULT_COURT_ID_MAP },
+    numCourts: DEFAULT_NUM_COURTS,
     categories,
     blocks,
   };

@@ -17,6 +17,7 @@ export function detectClashes(blocks: Block[]): Clash[] {
     for (let j = i + 1; j < blocks.length; j++) {
       const a = blocks[i];
       const b = blocks[j];
+      if (a.courts.length === 0 || b.courts.length === 0) continue;
       const aStart = startMinutes(a);
       const aEnd = blockEndMinutes(a);
       const bStart = startMinutes(b);

@@ -59,6 +59,17 @@ function sumCategoryMatchCount(ids: string[], categories: Category[]): number {
   }, 0);
 }
 
+function earliestCategoryStartTime(
+  ids: string[],
+  categories: Category[],
+): string | null {
+  const times = ids
+    .map(id => categories.find(c => c.id === id)?.defaultStartTime)
+    .filter((t): t is string => typeof t === "string" && t.length > 0);
+  if (times.length === 0) return null;
+  return times.reduce((earliest, t) => (t < earliest ? t : earliest));
+}
+
 export default function BlockForm({
   open,
   initial,
@@ -70,11 +81,13 @@ export default function BlockForm({
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [form, setForm] = useState<FormState>(emptyForm());
   const [matchCountTouched, setMatchCountTouched] = useState(false);
+  const [startTimeTouched, setStartTimeTouched] = useState(false);
 
   useEffect(() => {
     if (open) {
       setForm(initial ? toForm(initial) : emptyForm());
       setMatchCountTouched(!!initial);
+      setStartTimeTouched(!!initial);
       const dlg = dialogRef.current;
       if (dlg && !dlg.open) dlg.showModal();
     } else {
@@ -98,7 +111,19 @@ export default function BlockForm({
       if (!matchCountTouched && f.mode === "match-count") {
         nextMatchCount = sumCategoryMatchCount(next, categories);
       }
-      return { ...f, selectedCategoryIds: next, matchCount: nextMatchCount };
+
+      let nextStartTime = f.startTime;
+      if (!startTimeTouched) {
+        const earliest = earliestCategoryStartTime(next, categories);
+        if (earliest) nextStartTime = earliest;
+      }
+
+      return {
+        ...f,
+        selectedCategoryIds: next,
+        matchCount: nextMatchCount,
+        startTime: nextStartTime,
+      };
     });
   };
 
@@ -221,7 +246,10 @@ export default function BlockForm({
               type="time"
               className="scheduler-input"
               value={form.startTime}
-              onChange={e => update("startTime", e.target.value)}
+              onChange={e => {
+                setStartTimeTouched(true);
+                update("startTime", e.target.value);
+              }}
               required
             />
           </label>

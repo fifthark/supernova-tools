@@ -80,12 +80,15 @@ export default function BlocksPanel({
             const distribution = perCourtDistribution(b);
             const uneven = isUnevenDistribution(b);
             const hasClash = blockHasClash(b.id, clashes);
+            const noCourts = b.courts.length === 0;
             const start = formatTime(startMinutes(b));
             const end = formatTime(blockEndMinutes(b));
             return (
               <div
                 key={b.id}
-                className={`scheduler-card ${hasClash ? "scheduler-card-clash" : ""}`}
+                className={`scheduler-card ${hasClash ? "scheduler-card-clash" : ""} ${
+                  noCourts ? "scheduler-card-no-courts" : ""
+                }`}
               >
                 <div className="scheduler-card-head">
                   <div className="scheduler-card-title-row">
@@ -94,6 +97,9 @@ export default function BlocksPanel({
                     </span>
                     <span className="scheduler-card-title">{b.label}</span>
                     {hasClash && <span className="scheduler-clash-badge">clash</span>}
+                    {noCourts && (
+                      <span className="scheduler-no-courts-badge">no courts assigned</span>
+                    )}
                   </div>
                   <div className="scheduler-card-actions">
                     <button

@@ -8,7 +8,6 @@ import {
 
 interface CourtRow {
   court: number;
-  courtId: string;
   startMin: number;
   endMin: number;
   blockLabel: string;
@@ -19,6 +18,7 @@ export function exportTimetableMarkdown(plan: Plan): string {
   const rows: CourtRow[] = [];
 
   for (const block of plan.blocks) {
+    if (block.courts.length === 0) continue;
     const start = startMinutes(block);
     const end = blockBodyEndMinutes(block);
     const distribution = perCourtDistribution(block);
@@ -30,7 +30,6 @@ export function exportTimetableMarkdown(plan: Plan): string {
           : "fixed";
       rows.push({
         court,
-        courtId: plan.courtIdMap[court] ?? `Court ${court}`,
         startMin: start,
         endMin: end,
         blockLabel: block.label,
@@ -47,15 +46,15 @@ export function exportTimetableMarkdown(plan: Plan): string {
   const lines: string[] = [];
   lines.push(`# ${plan.tournamentName} — ${plan.tournamentDate}`);
   lines.push("");
-  lines.push("| Court | Court ID | Time | Block | Notes |");
-  lines.push("|-------|----------|------|-------|-------|");
+  lines.push("| Court | Time | Block | Notes |");
+  lines.push("|-------|------|-------|-------|");
 
   if (rows.length === 0) {
-    lines.push("| _no blocks_ |  |  |  |  |");
+    lines.push("| _no blocks_ |  |  |  |");
   } else {
     for (const r of rows) {
       lines.push(
-        `| Court ${r.court} | ${r.courtId} | ${formatTime(r.startMin)} – ${formatTime(r.endMin)} | ${r.blockLabel} | ${r.detail} |`,
+        `| Court ${r.court} | ${formatTime(r.startMin)} – ${formatTime(r.endMin)} | ${r.blockLabel} | ${r.detail} |`,
       );
     }
   }

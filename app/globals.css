@@ -1880,18 +1880,6 @@ html, body {
   gap: 16px;
 }
 
-.scheduler-court-id-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-  gap: 10px;
-}
-
-.scheduler-court-id-field {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
 /* ─── Header chips ───────────────────────────────────────────── */
 
 .scheduler-chips {
@@ -2120,6 +2108,22 @@ html, body {
   letter-spacing: 0.06em;
   padding: 2px 7px;
   border-radius: 10px;
+}
+
+.scheduler-no-courts-badge {
+  background: var(--scheduler-uneven-bg);
+  color: var(--scheduler-uneven-border);
+  border: 1px solid var(--scheduler-uneven-border);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 2px 7px;
+  border-radius: 10px;
+}
+
+.scheduler-card-no-courts {
+  border-left: 3px solid var(--scheduler-uneven-border);
 }
 
 /* ─── Event colour classes (shared by chips + timetable blocks) ── */
@@ -2436,12 +2440,6 @@ html, body {
   font-weight: 600;
   color: var(--text-primary);
   line-height: 1.1;
-}
-
-.scheduler-timetable-court-id {
-  font-size: 10px;
-  color: var(--text-tertiary);
-  font-family: ui-monospace, "SF Mono", Menlo, monospace;
 }
 
 .scheduler-timetable-time-col {

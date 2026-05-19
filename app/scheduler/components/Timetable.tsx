@@ -98,9 +98,6 @@ export default function Timetable({
         {courtNumbers.map(n => (
           <div key={`h-${n}`} className="scheduler-timetable-court-header">
             <span className="scheduler-timetable-court-name">Court {n}</span>
-            <span className="scheduler-timetable-court-id">
-              {plan.courtIdMap[n] ?? ""}
-            </span>
           </div>
         ))}
 
