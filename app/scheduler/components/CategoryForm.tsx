@@ -21,6 +21,7 @@ function emptyForm(): FormState {
     matchCount: 0,
     defaultMatchDurationMinutes: 20,
     defaultBufferMinutes: 0,
+    defaultStartTime: "",
     notes: "",
   };
 }
@@ -33,6 +34,7 @@ function toForm(c: Category): FormState {
     matchCount: c.matchCount,
     defaultMatchDurationMinutes: c.defaultMatchDurationMinutes,
     defaultBufferMinutes: c.defaultBufferMinutes,
+    defaultStartTime: c.defaultStartTime ?? "",
     notes: c.notes ?? "",
   };
 }
@@ -67,6 +69,7 @@ export default function CategoryForm({ open, initial, onSave, onClose }: Props) 
       matchCount: Math.max(0, Math.floor(form.matchCount)),
       defaultMatchDurationMinutes: Math.max(0, Math.floor(form.defaultMatchDurationMinutes)),
       defaultBufferMinutes: Math.max(0, Math.floor(form.defaultBufferMinutes)),
+      defaultStartTime: form.defaultStartTime?.trim() || undefined,
       notes: form.notes?.trim() || undefined,
     });
   };
@@ -144,6 +147,18 @@ export default function CategoryForm({ open, initial, onSave, onClose }: Props) 
               value={form.defaultBufferMinutes}
               onChange={e => update("defaultBufferMinutes", Number(e.target.value))}
             />
+          </label>
+          <label className="scheduler-field">
+            <span className="scheduler-field-label">Default start time (HH:MM)</span>
+            <input
+              type="time"
+              className="scheduler-input"
+              value={form.defaultStartTime ?? ""}
+              onChange={e => update("defaultStartTime", e.target.value)}
+            />
+            <span className="scheduler-field-hint">
+              Optional. New blocks selecting this category pre-fill their start time.
+            </span>
           </label>
         </div>
 

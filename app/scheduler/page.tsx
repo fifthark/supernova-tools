@@ -24,10 +24,7 @@ export default function SchedulerPage() {
 
   const courtNumbers = useMemo(() => {
     if (!plan) return [];
-    return Object.keys(plan.courtIdMap)
-      .map(n => parseInt(n, 10))
-      .filter(n => !Number.isNaN(n))
-      .sort((a, b) => a - b);
+    return Array.from({ length: plan.numCourts }, (_, i) => i + 1);
   }, [plan]);
 
   const clashes = useMemo(() => (plan ? detectClashes(plan.blocks) : []), [plan]);

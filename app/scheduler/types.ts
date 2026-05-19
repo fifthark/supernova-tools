@@ -18,6 +18,7 @@ export interface Category {
   matchCount: number;
   defaultMatchDurationMinutes: number;
   defaultBufferMinutes: number;
+  defaultStartTime?: string;
   notes?: string;
 }
 
@@ -37,13 +38,11 @@ export interface Block {
   notes?: string;
 }
 
-export type CourtIdMap = Record<number, string>;
-
 export interface Plan {
   schemaVersion: number;
   tournamentName: string;
   tournamentDate: string;
-  courtIdMap: CourtIdMap;
+  numCourts: number;
   categories: Category[];
   blocks: Block[];
 }

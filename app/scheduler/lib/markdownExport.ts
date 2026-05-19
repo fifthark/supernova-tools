@@ -1,63 +1,66 @@
-import type { Plan } from "../types";
+import type { Block, Plan } from "../types";
 import {
   blockBodyEndMinutes,
   formatTime,
-  perCourtDistribution,
   startMinutes,
 } from "./calculations";
 
-interface CourtRow {
-  court: number;
-  courtId: string;
-  startMin: number;
-  endMin: number;
-  blockLabel: string;
-  detail: string;
+const PADDING_MIN = 60;
+const SLOT_MIN = 30;
+
+function roundDownToHour(min: number): number {
+  return Math.floor(min / 60) * 60;
+}
+
+function roundUpToHour(min: number): number {
+  return Math.ceil(min / 60) * 60;
+}
+
+function blockActiveAt(block: Block, slotMin: number): boolean {
+  const s = startMinutes(block);
+  const e = blockBodyEndMinutes(block);
+  return s <= slotMin && slotMin < e;
 }
 
 export function exportTimetableMarkdown(plan: Plan): string {
-  const rows: CourtRow[] = [];
-
-  for (const block of plan.blocks) {
-    const start = startMinutes(block);
-    const end = blockBodyEndMinutes(block);
-    const distribution = perCourtDistribution(block);
-    block.courts.forEach((court, idx) => {
-      const matches = block.mode === "match-count" ? distribution[idx] ?? 0 : null;
-      const detail =
-        block.mode === "match-count"
-          ? `${matches} match${matches === 1 ? "" : "es"}`
-          : "fixed";
-      rows.push({
-        court,
-        courtId: plan.courtIdMap[court] ?? `Court ${court}`,
-        startMin: start,
-        endMin: end,
-        blockLabel: block.label,
-        detail,
-      });
-    });
-  }
-
-  rows.sort((a, b) => {
-    if (a.court !== b.court) return a.court - b.court;
-    return a.startMin - b.startMin;
-  });
-
   const lines: string[] = [];
   lines.push(`# ${plan.tournamentName} — ${plan.tournamentDate}`);
   lines.push("");
-  lines.push("| Court | Court ID | Time | Block | Notes |");
-  lines.push("|-------|----------|------|-------|-------|");
 
-  if (rows.length === 0) {
-    lines.push("| _no blocks_ |  |  |  |  |");
-  } else {
-    for (const r of rows) {
-      lines.push(
-        `| Court ${r.court} | ${r.courtId} | ${formatTime(r.startMin)} – ${formatTime(r.endMin)} | ${r.blockLabel} | ${r.detail} |`,
-      );
+  const activeBlocks = plan.blocks.filter(b => b.courts.length > 0);
+
+  if (activeBlocks.length === 0) {
+    lines.push("_no blocks_");
+    return lines.join("\n") + "\n";
+  }
+
+  let earliest = Infinity;
+  let latest = -Infinity;
+  for (const b of activeBlocks) {
+    const s = startMinutes(b);
+    const e = blockBodyEndMinutes(b);
+    if (s < earliest) earliest = s;
+    if (e > latest) latest = e;
+  }
+
+  const rangeStart = roundDownToHour(Math.max(0, earliest - PADDING_MIN));
+  const rangeEnd = roundUpToHour(latest + PADDING_MIN);
+
+  const slots: number[] = [];
+  for (let m = rangeStart; m < rangeEnd; m += SLOT_MIN) slots.push(m);
+
+  const headerCells = ["", ...slots.map(formatTime)];
+  lines.push("| " + headerCells.join(" | ") + " |");
+  lines.push("|" + headerCells.map(() => "------").join("|") + "|");
+
+  for (let court = 1; court <= plan.numCourts; court++) {
+    const blocksOnCourt = activeBlocks.filter(b => b.courts.includes(court));
+    const cells: string[] = [`Court ${court}`];
+    for (const slot of slots) {
+      const active = blocksOnCourt.find(b => blockActiveAt(b, slot));
+      cells.push(active?.label ?? "");
     }
+    lines.push("| " + cells.join(" | ") + " |");
   }
 
   return lines.join("\n") + "\n";
