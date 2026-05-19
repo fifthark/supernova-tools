@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import type { CSSProperties } from "react";
 import {
   blockBodyEndMinutes,
@@ -29,7 +29,7 @@ interface Props {
 
 const DEFAULT_START_MIN = 8 * 60;
 const DEFAULT_END_MIN = 18 * 60;
-const PADDING_MIN = 30;
+const PADDING_MIN = 60;
 
 function roundDownToHour(min: number): number {
   return Math.floor(min / 60) * 60;
@@ -68,6 +68,7 @@ export default function Timetable({
 
   const rootStyle: CSSProperties = {
     ["--scheduler-timetable-minutes" as string]: totalMin,
+    ["--scheduler-num-courts" as string]: courtNumbers.length,
   };
 
   const handleCopy = async () => {
@@ -90,112 +91,110 @@ export default function Timetable({
         </button>
       </header>
 
-      <div className="scheduler-timetable" style={rootStyle}>
-        {/* corner */}
-        <div className="scheduler-timetable-corner" />
+      <div className="scheduler-timetable-scroll">
+        <div className="scheduler-timetable" style={rootStyle}>
+          {/* top-left corner */}
+          <div className="scheduler-timetable-corner" />
 
-        {/* column headers */}
-        {courtNumbers.map(n => (
-          <div key={`h-${n}`} className="scheduler-timetable-court-header">
-            <span className="scheduler-timetable-court-name">Court {n}</span>
+          {/* top time axis */}
+          <div className="scheduler-timetable-time-axis">
+            {hourMarks.map(m => {
+              const offset = m - rangeStart;
+              return (
+                <div
+                  key={m}
+                  className="scheduler-timetable-hour-label"
+                  style={
+                    {
+                      ["--scheduler-col-offset" as string]: offset,
+                    } as CSSProperties
+                  }
+                >
+                  {formatTime(m)}
+                </div>
+              );
+            })}
           </div>
-        ))}
 
-        {/* time-label column */}
-        <div className="scheduler-timetable-time-col">
-          {hourMarks.map(m => {
-            const offset = m - rangeStart;
+          {/* per-court rows */}
+          {courtNumbers.map(n => {
+            const blocksOnCourt = blocks.filter(b => b.courts.includes(n));
             return (
-              <div
-                key={m}
-                className="scheduler-timetable-hour-label"
-                style={
-                  {
-                    ["--scheduler-row-offset" as string]: offset,
-                  } as CSSProperties
-                }
-              >
-                {formatTime(m)}
-              </div>
+              <Fragment key={n}>
+                <div className="scheduler-timetable-court-label">Court {n}</div>
+                <div className="scheduler-timetable-court-row">
+                  {blocksOnCourt.map(b => {
+                    const start = startMinutes(b);
+                    const bodyEnd = blockBodyEndMinutes(b);
+                    const fullEnd = blockEndMinutes(b);
+                    const leftOffset = start - rangeStart;
+                    const bodyWidth = Math.max(0, bodyEnd - start);
+                    const bufferWidth = Math.max(0, fullEnd - bodyEnd);
+                    const code = blockEventCode(b, categories);
+                    const isClashing = clashSet.has(`${b.id}:${n}`);
+                    const distribution = perCourtDistribution(b);
+                    const idx = b.courts.indexOf(n);
+                    const matchesOnThisCourt =
+                      b.mode === "match-count" ? distribution[idx] ?? 0 : null;
+
+                    const colourStyle: CSSProperties = b.colourOverride
+                      ? {
+                          background: b.colourOverride,
+                          borderColor: b.colourOverride,
+                        }
+                      : {};
+
+                    return (
+                      <div
+                        key={b.id}
+                        className="scheduler-timetable-block-stack"
+                        style={
+                          {
+                            ["--scheduler-col-offset" as string]: leftOffset,
+                          } as CSSProperties
+                        }
+                      >
+                        <div
+                          className={`scheduler-timetable-block ${eventCodeClass(code)} ${
+                            isClashing ? "scheduler-timetable-block-clash" : ""
+                          }`}
+                          style={
+                            {
+                              ["--scheduler-col-width" as string]: bodyWidth,
+                              ...colourStyle,
+                            } as CSSProperties
+                          }
+                          title={`${b.label}  ${formatTime(start)}–${formatTime(bodyEnd)}`}
+                        >
+                          <div className="scheduler-timetable-block-label">
+                            {b.label}
+                          </div>
+                          <div className="scheduler-timetable-block-meta">
+                            {formatTime(start)}–{formatTime(bodyEnd)}
+                            {matchesOnThisCourt != null && (
+                              <> · {matchesOnThisCourt}m</>
+                            )}
+                          </div>
+                        </div>
+                        {bufferWidth > 0 && (
+                          <div
+                            className="scheduler-timetable-buffer"
+                            style={
+                              {
+                                ["--scheduler-col-width" as string]: bufferWidth,
+                              } as CSSProperties
+                            }
+                            title={`After-block buffer ${bufferWidth}m`}
+                          />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </Fragment>
             );
           })}
         </div>
-
-        {/* court columns */}
-        {courtNumbers.map(n => {
-          const blocksOnCourt = blocks.filter(b => b.courts.includes(n));
-          return (
-            <div key={`c-${n}`} className="scheduler-timetable-court-col">
-              {blocksOnCourt.map(b => {
-                const start = startMinutes(b);
-                const bodyEnd = blockBodyEndMinutes(b);
-                const fullEnd = blockEndMinutes(b);
-                const top = start - rangeStart;
-                const bodyHeight = Math.max(0, bodyEnd - start);
-                const bufferHeight = Math.max(0, fullEnd - bodyEnd);
-                const code = blockEventCode(b, categories);
-                const isClashing = clashSet.has(`${b.id}:${n}`);
-                const distribution = perCourtDistribution(b);
-                const idx = b.courts.indexOf(n);
-                const matchesOnThisCourt =
-                  b.mode === "match-count" ? distribution[idx] ?? 0 : null;
-
-                const colourStyle: CSSProperties = b.colourOverride
-                  ? {
-                      background: b.colourOverride,
-                      borderColor: b.colourOverride,
-                    }
-                  : {};
-
-                return (
-                  <div
-                    key={b.id}
-                    className="scheduler-timetable-block-stack"
-                    style={
-                      {
-                        ["--scheduler-row-offset" as string]: top,
-                      } as CSSProperties
-                    }
-                  >
-                    <div
-                      className={`scheduler-timetable-block ${eventCodeClass(code)} ${
-                        isClashing ? "scheduler-timetable-block-clash" : ""
-                      }`}
-                      style={
-                        {
-                          ["--scheduler-row-height" as string]: bodyHeight,
-                          ...colourStyle,
-                        } as CSSProperties
-                      }
-                      title={`${b.label}  ${formatTime(start)}–${formatTime(bodyEnd)}`}
-                    >
-                      <div className="scheduler-timetable-block-label">
-                        {b.label}
-                      </div>
-                      <div className="scheduler-timetable-block-meta">
-                        {formatTime(start)}–{formatTime(bodyEnd)}
-                        {matchesOnThisCourt != null && (
-                          <> · {matchesOnThisCourt}m</>
-                        )}
-                      </div>
-                    </div>
-                    {bufferHeight > 0 && (
-                      <div
-                        className="scheduler-timetable-buffer"
-                        style={
-                          {
-                            ["--scheduler-row-height" as string]: bufferHeight,
-                          } as CSSProperties
-                        }
-                        title={`After-block buffer ${bufferHeight}m`}
-                      />
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          );
-        })}
       </div>
 
       <p className="annotation scheduler-timetable-legend">
