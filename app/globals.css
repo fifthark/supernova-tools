@@ -2575,3 +2575,465 @@ html, body {
 .scheduler-timetable-legend {
   margin-top: 4px;
 }
+
+/* ═══════════════════════════════════════════════════════════════════ */
+/* COURT SHEETS                                                        */
+/* ═══════════════════════════════════════════════════════════════════ */
+
+.courtsheets-shell {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 32px 24px 64px;
+}
+
+.courtsheets-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.courtsheets-header {
+  margin-bottom: 4px;
+}
+
+.courtsheets-title {
+  font-size: 28px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.courtsheets-subtitle {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+/* Dropzone */
+.courtsheets-dropzone {
+  background: var(--bg-secondary);
+  border: 2px dashed var(--border);
+  border-radius: var(--radius);
+  padding: 32px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 200ms ease, background 200ms ease;
+}
+
+.courtsheets-dropzone:hover,
+.courtsheets-dropzone-active {
+  border-color: var(--accent-profit);
+  background: #FFF8F4;
+}
+
+.courtsheets-dropzone-title {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+
+.courtsheets-dropzone-hint {
+  font-size: 13px;
+  color: var(--text-tertiary);
+}
+
+.courtsheets-file-info {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+
+.courtsheets-file-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+/* Mapping */
+.courtsheets-mapping {
+  background: var(--bg-secondary);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  padding: 20px;
+}
+
+.courtsheets-mapping-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.courtsheets-mapping-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.courtsheets-mapping-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.courtsheets-mapping-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.courtsheets-auto-tag {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--accent-profit);
+  background: #FFF1E8;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.courtsheets-link-button {
+  background: none;
+  border: none;
+  color: var(--accent-profit);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0;
+}
+
+.courtsheets-link-button:hover {
+  text-decoration: underline;
+}
+
+.courtsheets-warning {
+  margin-top: 12px;
+  padding: 10px 14px;
+  background: #FFF3CD;
+  border-left: 3px solid #FFC107;
+  border-radius: 4px;
+  font-size: 13px;
+  color: #856404;
+}
+
+.courtsheets-error {
+  padding: 10px 14px;
+  background: #FDECEA;
+  border-left: 3px solid var(--accent-loss);
+  border-radius: 4px;
+  font-size: 13px;
+  color: #8A1F19;
+}
+
+.courtsheets-empty {
+  padding: 24px;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 14px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius);
+}
+
+/* Blocking errors panel */
+.courtsheets-errors-panel {
+  background: #FDECEA;
+  border-left: 3px solid var(--accent-loss);
+  border-radius: var(--radius-sm);
+  padding: 16px 20px;
+}
+
+.courtsheets-errors-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #8A1F19;
+  margin-bottom: 8px;
+}
+
+.courtsheets-errors-list {
+  list-style: disc;
+  margin: 8px 0 8px 20px;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.courtsheets-errors-list li {
+  margin-bottom: 4px;
+}
+
+.courtsheets-errors-hint {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+/* Clash panel — flagged */
+.courtsheets-clash-panel {
+  background: #FFF3CD;
+  border-left: 3px solid #FFC107;
+  border-radius: var(--radius-sm);
+  padding: 16px 20px;
+}
+
+.courtsheets-clash-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #856404;
+  margin-bottom: 8px;
+}
+
+.courtsheets-clash-list {
+  list-style: disc;
+  margin: 8px 0 0 20px;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.courtsheets-clash-list li {
+  margin-bottom: 4px;
+}
+
+/* Clash panel — clean */
+.courtsheets-clash-clean {
+  background: #E8F5E9;
+  border-left: 3px solid #34C759;
+  border-radius: var(--radius-sm);
+  padding: 12px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #1B5E20;
+}
+
+/* Clash panel — no IDs */
+.courtsheets-clash-noids {
+  background: var(--bg-tertiary);
+  border-left: 3px solid var(--text-tertiary);
+  border-radius: var(--radius-sm);
+  padding: 12px 16px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+/* Meta inputs */
+.courtsheets-meta-inputs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  padding: 20px;
+}
+
+.courtsheets-meta-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.courtsheets-text-input {
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+  outline: none;
+  transition: border-color 200ms ease;
+}
+
+.courtsheets-text-input:focus {
+  border-color: var(--border-focus);
+}
+
+/* Actions */
+.courtsheets-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+/* Pages — screen preview */
+.courtsheets-pages {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  margin-top: 24px;
+}
+
+.courtsheets-page {
+  background: var(--bg-secondary);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  padding: 32px;
+}
+
+.courtsheets-page-header {
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 16px;
+}
+
+.courtsheets-page-court {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.courtsheets-page-category {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.courtsheets-page-meta {
+  font-size: 13px;
+  color: var(--text-tertiary);
+  margin-bottom: 4px;
+}
+
+.courtsheets-page-count {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+.courtsheets-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.courtsheets-table th,
+.courtsheets-table td {
+  border: 1px solid var(--border);
+  padding: 10px 12px;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.courtsheets-table th {
+  background: var(--bg-tertiary);
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+}
+
+.courtsheets-col-match {
+  width: 80px;
+  font-variant-numeric: tabular-nums;
+}
+
+.courtsheets-col-time {
+  width: 110px;
+  font-variant-numeric: tabular-nums;
+}
+
+.courtsheets-col-teams {
+  /* fluid */
+}
+
+/* ═══════════════════════════════════════════════════════════════════ */
+/* COURT SHEETS — PRINT                                                */
+/* ═══════════════════════════════════════════════════════════════════ */
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 14mm 14mm 16mm 14mm;
+  }
+
+  html, body {
+    background: white !important;
+    color: black !important;
+  }
+
+  /* Hide non-print chrome */
+  .nav-bar,
+  .courtsheets-controls {
+    display: none !important;
+  }
+
+  .courtsheets-shell {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .courtsheets-pages {
+    gap: 0;
+    margin-top: 0;
+  }
+
+  .courtsheets-page {
+    background: white !important;
+    box-shadow: none !important;
+    border-radius: 0;
+    padding: 0;
+    page-break-before: always;
+    break-before: page;
+  }
+
+  .courtsheets-page:first-child {
+    page-break-before: avoid;
+    break-before: avoid;
+  }
+
+  .courtsheets-page-header {
+    border-bottom: 2px solid black;
+    margin-bottom: 12px;
+    padding-bottom: 10px;
+  }
+
+  .courtsheets-page-court {
+    color: black !important;
+    font-size: 22pt;
+  }
+
+  .courtsheets-page-category {
+    color: black !important;
+    font-size: 13pt;
+    font-weight: 500;
+  }
+
+  .courtsheets-page-meta,
+  .courtsheets-page-count {
+    color: black !important;
+    font-size: 10pt;
+  }
+
+  .courtsheets-table {
+    font-size: 11pt;
+    page-break-inside: auto;
+  }
+
+  .courtsheets-table thead {
+    display: table-header-group;
+  }
+
+  .courtsheets-table tr {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  .courtsheets-table th,
+  .courtsheets-table td {
+    border: 1px solid black !important;
+    color: black !important;
+    background: white !important;
+    padding: 8px 10px;
+  }
+
+  .courtsheets-table th {
+    font-size: 10pt;
+    text-transform: uppercase;
+  }
+}
