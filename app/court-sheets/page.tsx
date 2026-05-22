@@ -81,8 +81,22 @@ const EMPTY_MAPPING: Mapping = {
 };
 
 // Optional ID columns for clash detection (not part of the user-facing mapping).
-const ENTITY_A_CANDIDATES = ["entitya_id", "entity_a_id", "entitya id", "entity a id"];
-const ENTITY_B_CANDIDATES = ["entityb_id", "entity_b_id", "entityb id", "entity b id"];
+// Primary headers are the league export's "EntryA/Entry_ID" + "EntryB/Entry_ID";
+// older "EntityA_ID" variants kept as fallbacks.
+const ENTITY_A_CANDIDATES = [
+  "entrya/entry_id",
+  "entitya_id",
+  "entity_a_id",
+  "entitya id",
+  "entity a id",
+];
+const ENTITY_B_CANDIDATES = [
+  "entryb/entry_id",
+  "entityb_id",
+  "entity_b_id",
+  "entityb id",
+  "entity b id",
+];
 
 // ═══════════════════════════════════════════════════════════════════
 // HELPERS
@@ -613,7 +627,7 @@ export default function CourtSheetsPage() {
         {hasFile && errors.length === 0 && unmappedFields.length === 0 && (
           !idColumns.a && !idColumns.b ? (
             <div className="courtsheets-clash-noids">
-              Entity IDs not found — clash detection unavailable. Add EntityA_ID and EntityB_ID columns to enable.
+              Entity IDs not found — clash detection unavailable. Add EntryA/Entry_ID and EntryB/Entry_ID columns to enable.
             </div>
           ) : clashes.length > 0 ? (
             <div className="courtsheets-clash-panel">
