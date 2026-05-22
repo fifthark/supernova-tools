@@ -2851,10 +2851,21 @@ html, body {
 }
 
 /* Actions */
+.courtsheets-actions-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 .courtsheets-actions {
   display: flex;
   align-items: center;
   gap: 16px;
+}
+
+.courtsheets-print-tip {
+  font-size: 12px;
+  color: var(--text-tertiary);
 }
 
 /* Pages — screen preview */
@@ -2873,41 +2884,61 @@ html, body {
 }
 
 .courtsheets-page-header {
-  margin-bottom: 20px;
-  border-bottom: 1px solid var(--border);
-  padding-bottom: 16px;
+  margin-bottom: 16px;
+  border-bottom: 2px solid var(--text-primary);
+  padding-bottom: 12px;
 }
 
 .courtsheets-page-court {
-  font-size: 26px;
+  font-size: 30px;
   font-weight: 700;
   color: var(--text-primary);
+  letter-spacing: -0.01em;
   margin-bottom: 4px;
-}
-
-.courtsheets-page-category {
-  font-size: 16px;
-  font-weight: 500;
-  color: var(--text-secondary);
-  margin-bottom: 8px;
 }
 
 .courtsheets-page-meta {
   font-size: 13px;
+  font-weight: 400;
   color: var(--text-tertiary);
-  margin-bottom: 4px;
 }
 
-.courtsheets-page-count {
+/* Category section within a court page */
+.courtsheets-section {
+  margin-top: 20px;
+}
+
+.courtsheets-section:first-of-type {
+  margin-top: 8px;
+}
+
+.courtsheets-section-heading {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: 0.01em;
+  padding-bottom: 6px;
+  margin-bottom: 10px;
+  border-bottom: 1.5px solid var(--text-primary);
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.courtsheets-section-count {
   font-size: 12px;
+  font-weight: 500;
   color: var(--text-tertiary);
   font-variant-numeric: tabular-nums;
 }
 
+/* Match table */
 .courtsheets-table {
   width: 100%;
   border-collapse: collapse;
   font-size: 14px;
+  table-layout: fixed;
 }
 
 .courtsheets-table th,
@@ -2921,24 +2952,35 @@ html, body {
 .courtsheets-table th {
   background: var(--bg-tertiary);
   font-weight: 600;
-  font-size: 12px;
+  font-size: 11px;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
   color: var(--text-secondary);
 }
 
+.courtsheets-table tbody tr:nth-child(even) {
+  background: #F7F7F9;
+}
+
 .courtsheets-col-match {
-  width: 80px;
+  width: 50px;
+  text-align: center;
   font-variant-numeric: tabular-nums;
 }
 
 .courtsheets-col-time {
   width: 110px;
   font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  font-size: 15px;
 }
 
 .courtsheets-col-teams {
-  /* fluid */
+  /* fluid; wrap long names cleanly */
+  word-break: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+  line-height: 1.35;
 }
 
 /* ═══════════════════════════════════════════════════════════════════ */
@@ -2973,6 +3015,7 @@ html, body {
     margin-top: 0;
   }
 
+  /* One court per printed page */
   .courtsheets-page {
     background: white !important;
     box-shadow: none !important;
@@ -2988,30 +3031,54 @@ html, body {
   }
 
   .courtsheets-page-header {
-    border-bottom: 2px solid black;
+    border-bottom: 2.5px solid black;
     margin-bottom: 12px;
-    padding-bottom: 10px;
+    padding-bottom: 8px;
   }
 
   .courtsheets-page-court {
     color: black !important;
-    font-size: 22pt;
+    font-size: 26pt;
+    font-weight: 700;
+    letter-spacing: -0.01em;
   }
 
-  .courtsheets-page-category {
+  .courtsheets-page-meta {
+    color: black !important;
+    font-size: 10pt;
+    font-weight: 400;
+  }
+
+  /* Section heading inside a court page */
+  .courtsheets-section {
+    margin-top: 14pt;
+    /* Try to keep heading with its first row */
+    break-inside: auto;
+  }
+
+  .courtsheets-section:first-of-type {
+    margin-top: 6pt;
+  }
+
+  .courtsheets-section-heading {
     color: black !important;
     font-size: 13pt;
+    font-weight: 700;
+    border-bottom: 1.5pt solid black;
+    padding-bottom: 4pt;
+    margin-bottom: 6pt;
+    page-break-after: avoid;
+    break-after: avoid;
+  }
+
+  .courtsheets-section-count {
+    color: black !important;
+    font-size: 10pt;
     font-weight: 500;
   }
 
-  .courtsheets-page-meta,
-  .courtsheets-page-count {
-    color: black !important;
-    font-size: 10pt;
-  }
-
   .courtsheets-table {
-    font-size: 11pt;
+    font-size: 13pt;
     page-break-inside: auto;
   }
 
@@ -3028,12 +3095,33 @@ html, body {
   .courtsheets-table td {
     border: 1px solid black !important;
     color: black !important;
-    background: white !important;
     padding: 8px 10px;
   }
 
+  .courtsheets-table tbody tr:nth-child(even) td {
+    /* Light enough that text stays crisp in B&W */
+    background: #EEEEEE !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .courtsheets-table tbody tr:nth-child(odd) td {
+    background: white !important;
+  }
+
   .courtsheets-table th {
+    background: white !important;
     font-size: 10pt;
     text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .courtsheets-col-time {
+    font-size: 14pt;
+    font-weight: 500;
+  }
+
+  .courtsheets-col-teams {
+    font-size: 13pt;
   }
 }

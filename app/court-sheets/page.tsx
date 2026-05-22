@@ -25,11 +25,15 @@ type Row = {
   teams: string;
 };
 
-type Page = {
-  court: string;
+type CategorySection = {
   category: string;
   rows: Row[];
   earliestSortKey: number;
+};
+
+type CourtPage = {
+  court: string;
+  sections: CategorySection[];
 };
 
 type RowError = {
@@ -179,7 +183,7 @@ function formatCategory(raw: string): string {
   return raw.split("|").map(s => s.trim()).filter(Boolean).join(" · ");
 }
 
-function buildPages(rows: Row[]): Page[] {
+function buildCourtPages(rows: Row[]): CourtPage[] {
   if (rows.length === 0) return [];
 
   // Caller is expected to filter out rows with blank Court/Time first
@@ -201,13 +205,12 @@ function buildPages(rows: Row[]): Page[] {
     list.push(row);
   }
 
-  const pages: Page[] = [];
+  const pages: CourtPage[] = [];
   const courtNames = Array.from(byCourt.keys()).sort(naturalCompare);
 
   for (const court of courtNames) {
     const courtMap = byCourt.get(court)!;
-    // Build category pages within this court, sorted by earliest match time
-    const catPages: Page[] = [];
+    const sections: CategorySection[] = [];
     for (const [category, catRows] of courtMap.entries()) {
       const sorted = [...catRows].sort((a, b) => {
         const aMin = parseTimeToMinutes(a.time);
@@ -215,7 +218,6 @@ function buildPages(rows: Row[]): Page[] {
         if (aMin !== null && bMin !== null && aMin !== bMin) return aMin - bMin;
         if (aMin !== null && bMin === null) return -1;
         if (aMin === null && bMin !== null) return 1;
-        // Tie-break by Match # (numeric if possible)
         const aNum = parseInt(a.match, 10);
         const bNum = parseInt(b.match, 10);
         if (!Number.isNaN(aNum) && !Number.isNaN(bNum)) return aNum - bNum;
@@ -225,13 +227,13 @@ function buildPages(rows: Row[]): Page[] {
         .map(r => parseTimeToMinutes(r.time))
         .filter((n): n is number => n !== null);
       const earliestSortKey = earliest.length > 0 ? Math.min(...earliest) : Number.MAX_SAFE_INTEGER;
-      catPages.push({ court, category, rows: sorted, earliestSortKey });
+      sections.push({ category, rows: sorted, earliestSortKey });
     }
-    catPages.sort((a, b) => {
+    sections.sort((a, b) => {
       if (a.earliestSortKey !== b.earliestSortKey) return a.earliestSortKey - b.earliestSortKey;
       return a.category.localeCompare(b.category);
     });
-    pages.push(...catPages);
+    pages.push({ court, sections });
   }
 
   return pages;
@@ -449,7 +451,7 @@ export default function CourtSheetsPage() {
 
   const pages = useMemo(() => {
     if (errors.length > 0) return [];
-    return buildPages(rows);
+    return buildCourtPages(rows);
   }, [rows, errors]);
 
   const resetMapping = () => {
@@ -652,13 +654,18 @@ export default function CourtSheetsPage() {
 
         {/* Print button */}
         {hasPages && (
-          <div className="courtsheets-actions">
-            <button type="button" className="btn-primary" onClick={handlePrint}>
-              Print / Save as PDF
-            </button>
-            <span className="annotation">
-              {pages.length} {pages.length === 1 ? "page" : "pages"} · {rows.length} matches
-            </span>
+          <div className="courtsheets-actions-wrap">
+            <div className="courtsheets-actions">
+              <button type="button" className="btn-primary" onClick={handlePrint}>
+                Print / Save as PDF
+              </button>
+              <span className="annotation">
+                {pages.length} {pages.length === 1 ? "court" : "courts"} · {rows.length} matches
+              </span>
+            </div>
+            <div className="courtsheets-print-tip">
+              Tip: in the print dialog, turn off &ldquo;Headers and footers&rdquo; for a clean sheet.
+            </div>
           </div>
         )}
 
@@ -671,12 +678,9 @@ export default function CourtSheetsPage() {
       {hasPages && (
         <section className="courtsheets-pages">
           {pages.map((page, idx) => (
-            <article key={`${page.court}::${page.category}::${idx}`} className="courtsheets-page">
+            <article key={`${page.court}::${idx}`} className="courtsheets-page">
               <header className="courtsheets-page-header">
                 <h2 className="courtsheets-page-court">{page.court}</h2>
-                <div className="courtsheets-page-category">
-                  {formatCategory(page.category)}
-                </div>
                 {(tournamentName || date) && (
                   <div className="courtsheets-page-meta">
                     {tournamentName}
@@ -684,28 +688,35 @@ export default function CourtSheetsPage() {
                     {date}
                   </div>
                 )}
-                <div className="courtsheets-page-count">
-                  ({page.rows.length} {page.rows.length === 1 ? "match" : "matches"})
-                </div>
               </header>
-              <table className="courtsheets-table">
-                <thead>
-                  <tr>
-                    <th className="courtsheets-col-match">Match #</th>
-                    <th className="courtsheets-col-time">Time</th>
-                    <th className="courtsheets-col-teams">Teams</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {page.rows.map((row, i) => (
-                    <tr key={i}>
-                      <td className="courtsheets-col-match">{row.match || "TBD"}</td>
-                      <td className="courtsheets-col-time">{row.time || "TBD"}</td>
-                      <td className="courtsheets-col-teams">{row.teams || "TBD"}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              {page.sections.map((section, sIdx) => (
+                <div key={`${section.category}::${sIdx}`} className="courtsheets-section">
+                  <h3 className="courtsheets-section-heading">
+                    {formatCategory(section.category)}
+                    <span className="courtsheets-section-count">
+                      ({section.rows.length} {section.rows.length === 1 ? "match" : "matches"})
+                    </span>
+                  </h3>
+                  <table className="courtsheets-table">
+                    <thead>
+                      <tr>
+                        <th className="courtsheets-col-match">#</th>
+                        <th className="courtsheets-col-time">Time</th>
+                        <th className="courtsheets-col-teams">Teams</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {section.rows.map((row, i) => (
+                        <tr key={i}>
+                          <td className="courtsheets-col-match">{row.match || "TBD"}</td>
+                          <td className="courtsheets-col-time">{row.time || "TBD"}</td>
+                          <td className="courtsheets-col-teams">{row.teams || "TBD"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ))}
             </article>
           ))}
         </section>
