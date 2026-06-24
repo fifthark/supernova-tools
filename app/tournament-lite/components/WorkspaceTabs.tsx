@@ -1,10 +1,10 @@
 "use client";
 
-export type WorkspaceTab = "setup" | "teams" | "matches" | "leaderboard";
+export type WorkspaceTab = "setup" | "entries" | "matches" | "leaderboard";
 
 const TABS: { id: WorkspaceTab; label: string }[] = [
   { id: "setup", label: "Setup" },
-  { id: "teams", label: "Teams" },
+  { id: "entries", label: "Entries" },
   { id: "matches", label: "Matches" },
   { id: "leaderboard", label: "Leaderboard" },
 ];

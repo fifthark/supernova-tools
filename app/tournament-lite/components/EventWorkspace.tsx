@@ -9,9 +9,9 @@ const TAB_PLACEHOLDERS: Record<WorkspaceTab, { title: string; description: strin
     title: "Setup",
     description: "Event name, dates, courts, and categories will live here.",
   },
-  teams: {
-    title: "Teams",
-    description: "Paste or add teams, then auto-pool oversized categories.",
+  entries: {
+    title: "Entries",
+    description: "Paste or add entries, then auto-pool oversized categories.",
   },
   matches: {
     title: "Matches",
