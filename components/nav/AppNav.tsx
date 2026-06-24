@@ -11,6 +11,7 @@ export default function AppNav() {
     { href: "/fb-ads", label: "FB Ads Dashboard" },
     { href: "/scheduler", label: "Scheduler" },
     { href: "/court-sheets", label: "Court Sheets" },
+    { href: "/tournament-lite", label: "Tournament Lite" },
   ];
 
   return (

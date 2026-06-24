@@ -3121,3 +3121,93 @@ html, body {
     font-size: 13pt;
   }
 }
+
+/* ============================================================
+   Tournament Lite (.tlite-*) — Commit 1 shell stub
+   ============================================================ */
+.tlite-shell {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 24px 20px 64px;
+}
+
+.tlite-header {
+  margin-bottom: 20px;
+}
+
+.tlite-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.tlite-subtitle {
+  margin-top: 4px;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.tlite-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.tlite-tab {
+  appearance: none;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 10px 14px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.tlite-tab:hover {
+  color: var(--text-primary);
+}
+
+.tlite-tab-active {
+  color: var(--accent-profit);
+  border-bottom-color: var(--accent-profit);
+}
+
+.tlite-panel {
+  padding: 32px 24px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+}
+
+.tlite-placeholder {
+  text-align: center;
+}
+
+.tlite-placeholder-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.tlite-placeholder-text {
+  margin-top: 8px;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.tlite-placeholder-badge {
+  display: inline-block;
+  margin-top: 16px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-tertiary);
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-sm);
+}
