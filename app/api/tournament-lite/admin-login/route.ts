@@ -28,7 +28,10 @@ export async function POST(req: Request) {
     /* missing/invalid body -> treated as no passcode */
   }
   const supplied = typeof body.passcode === "string" ? body.passcode : "";
-  if (!supplied || !safeEqual(supplied, passcode)) {
+  // Always run the constant-time comparison — including for an empty/missing
+  // passcode — so response timing can't distinguish "no passcode sent" from
+  // "wrong passcode". safeEqual("", passcode) is false, so 401 still holds.
+  if (!safeEqual(supplied, passcode)) {
     return NextResponse.json(
       { ok: false, reason: "invalid_passcode", message: "Incorrect passcode." },
       { status: 401 },

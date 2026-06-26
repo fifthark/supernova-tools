@@ -3,6 +3,13 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
+// Only allow same-origin internal paths as a post-login redirect target. Rejects
+// protocol-relative ("//evil"), backslash ("/\evil" -> //evil in browsers) and
+// any external/absolute URL, while still permitting paths like /tournaments/admin.
+function isSafeInternalPath(p: string | null): p is string {
+  return !!p && p.startsWith("/") && !p.startsWith("//") && !p.includes("\\");
+}
+
 // Admin passcode gate. On success the server sets an httpOnly cookie and we
 // redirect to the requested admin page (or the admin console by default).
 export default function AdminLoginPage() {
@@ -14,7 +21,7 @@ export default function AdminLoginPage() {
 
   useEffect(() => {
     const p = new URLSearchParams(window.location.search).get("next");
-    if (p && p.startsWith("/") && !p.startsWith("//")) setNext(p);
+    if (isSafeInternalPath(p)) setNext(p);
   }, []);
 
   async function submit(e: React.FormEvent) {

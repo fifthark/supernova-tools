@@ -5,13 +5,12 @@
 // into the request body, so the secret never reaches the browser. Never import
 // this module from a client component.
 //
-// SECURITY TODO (before public deploy): the admin actions here are gated only by
-// the server-held ADMIN_SECRET, NOT by any user auth. Before exposing the admin
-// console on a public ShuttleFlow domain, protect the admin surface:
-//   - pages: /tournament-lite, /tournaments/admin
-//   - admin API: /api/tournament-lite/{state,generate,score,recalc,reset,category}
+// Admin actions here carry the server-held ADMIN_SECRET. Network access to the
+// admin pages (/tournament-lite, /tournaments/admin) and admin API
+// (/api/tournament-lite/{state,generate,score,recalc,reset,category}) is gated by
+// the Next.js middleware (middleware.ts), which requires the admin session cookie.
 // The public board (/api/tournament-lite/public, /live/[token]) stays read-only
-// and token-gated and may remain public.
+// and Share_Token-gated, and remains public by design.
 
 export interface GasResult {
   ok: boolean;
