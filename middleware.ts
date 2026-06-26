@@ -14,6 +14,7 @@ const COOKIE = "tl_admin";
 
 export const config = {
   matcher: [
+    "/admin/:path*",
     "/tournaments/admin/:path*",
     "/tournament-lite",
     "/api/tournament-lite/state",
