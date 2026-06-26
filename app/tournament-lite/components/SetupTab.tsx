@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { TournamentState, Category } from "../lib/types";
-import { isActiveStatus, isTrueish, num, humanError, eventCourtLabels, settingValue, formatCourtList } from "../lib/utils";
+import { isActiveStatus, isTrueish, num, humanError, eventCourtLabels, settingValue, formatCourtList, formatEventDate } from "../lib/utils";
 import { generateFixtures, resetFixtures, saveCategory } from "../lib/api";
 import { Message } from "./ui";
 import CategoryEditModal from "./CategoryEditModal";
@@ -24,6 +24,8 @@ export default function SetupTab({
   return (
     <div className="tlite-stack">
       <GlobalFixtureCard state={state} onRefresh={onRefresh} />
+
+      <EventDetailsCard state={state} />
 
       <PlayerLinkCard token={settingValue(state, "Share_Token")} />
 
@@ -49,6 +51,32 @@ export default function SetupTab({
         />
       )}
     </div>
+  );
+}
+
+// Event details (date, venue, cost, PayID). Cost + PayID live here — not in the
+// hero header — so admins still have payment info to hand without cluttering the
+// top of the console or the public board.
+function EventDetailsCard({ state }: { state: TournamentState }) {
+  const rows = [
+    { k: "Date", v: formatEventDate(settingValue(state, "Event_Date")) },
+    { k: "Venue", v: settingValue(state, "Venue") },
+    { k: "Cost", v: settingValue(state, "Cost_Note") },
+    { k: "PayID", v: settingValue(state, "PayID") },
+  ].filter((r) => r.v);
+  if (rows.length === 0) return null;
+  return (
+    <section className="tlite-card">
+      <h3 className="tlite-card-title">Event details</h3>
+      <div className="tlite-cat-grid">
+        {rows.map((r) => (
+          <div key={r.k}>
+            <span className="tlite-cat-k">{r.k}</span>
+            <span className="tlite-cat-v">{r.v}</span>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 

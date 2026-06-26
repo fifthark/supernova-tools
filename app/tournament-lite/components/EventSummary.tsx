@@ -1,7 +1,7 @@
 "use client";
 
 import type { TournamentState } from "../lib/types";
-import { settingValue, isActiveStatus, isTrueish, formatTimestamp } from "../lib/utils";
+import { settingValue, isActiveStatus, isTrueish, formatTimestamp, formatEventDate } from "../lib/utils";
 
 export default function EventSummary({ state }: { state: TournamentState }) {
   const categories = state.categories ?? [];
@@ -13,11 +13,11 @@ export default function EventSummary({ state }: { state: TournamentState }) {
   ).length;
 
   const name = settingValue(state, "Event_Name") || "Untitled event";
+  // Header meta: clean Melbourne-local date + venue only. Cost note and PayID are
+  // intentionally NOT shown here (they live in Setup > Event details).
   const meta = [
-    settingValue(state, "Event_Date"),
+    formatEventDate(settingValue(state, "Event_Date")),
     settingValue(state, "Venue"),
-    settingValue(state, "Cost_Note"),
-    settingValue(state, "PayID"),
   ].filter(Boolean);
 
   const fixturesReady = isTrueish(settingValue(state, "Fixtures_Generated"));
