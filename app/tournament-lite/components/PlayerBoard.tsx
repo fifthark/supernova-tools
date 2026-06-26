@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { fetchPublicBoard } from "../lib/api";
-import { num, isTrueish, groupBy, poolLetter, formatClock } from "../lib/utils";
+import { num, isTrueish, groupBy, poolLetter, formatClock, formatEventDate } from "../lib/utils";
 import { CategoryNav, CategoryStats, LoadingState } from "./ui";
 import type { PublicBoard, PublicCategory, Match, LeaderRow } from "../lib/types";
 
@@ -109,7 +109,7 @@ export default function PlayerBoard({ token }: { token: string }) {
   }
 
   const event = board?.event ?? {};
-  const meta = [event.date, event.venue].filter(Boolean).join(" · ");
+  const meta = [formatEventDate(event.date), event.venue].filter(Boolean).join(" · ");
   const cat = categories.find((c) => c.id === selectedCat);
   const matches = (board?.matches ?? []).filter((m) => String(m.Category_ID) === selectedCat);
   const leaderboard = (board?.leaderboard ?? []).filter((r) => String(r.Category_ID) === selectedCat);

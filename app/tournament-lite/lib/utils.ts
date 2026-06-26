@@ -49,17 +49,41 @@ export function groupBy<T>(items: T[], key: (item: T) => string): Map<string, T[
   return map;
 }
 
-// Event court labels: Court_Names (CSV) if set, else "Court 1".."Court N".
+// Venues can have up to 15 courts, so the court bank always offers at least
+// Court 1..15 — the admin must be able to pick any court up to a 15-court venue
+// even before the global Settings court bank has been configured.
+export const DEFAULT_COURT_COUNT = 15;
+
+// Court bank used for per-category court selection. Always exposes the numbered
+// bank Court 1..N (N = max(Num_Courts, 15)) so the admin can select ANY court up
+// to a 15-court venue, then appends any custom (non "Court N") labels configured
+// in Settings.Court_Names (e.g. "East", "Show Court"). When Court_Names is
+// missing this is exactly Court 1..15 — never an old Court 1–6 / 6–14 limit.
 export function eventCourtLabels(state: TournamentState): string[] {
-  const names = settingValue(state, "Court_Names");
-  if (names.trim() !== "") {
-    const labels = names.split(",").map((s) => s.trim()).filter(Boolean);
-    if (labels.length > 0) return labels;
-  }
-  const n = num(settingValue(state, "Num_Courts"));
-  const out: string[] = [];
-  for (let i = 1; i <= n; i += 1) out.push(`Court ${i}`);
-  return out;
+  const n = Math.max(num(settingValue(state, "Num_Courts")), DEFAULT_COURT_COUNT);
+  const numbered: string[] = [];
+  for (let i = 1; i <= n; i += 1) numbered.push(`Court ${i}`);
+
+  // Keep any custom court labels the venue configured without dropping the
+  // standard numbered bank (so 1..15 are always selectable).
+  const extras = settingValue(state, "Court_Names")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .filter((label) => !numbered.some((c) => c.toLowerCase() === label.toLowerCase()));
+
+  return [...numbered, ...extras];
+}
+
+// Display a category's Court_Whitelist cleanly with spaces:
+// "Court 6,Court 7,Court 8" -> "Court 6, Court 7, Court 8".
+// A blank whitelist means every court is available -> "All".
+export function formatCourtList(csv: string | undefined | null): string {
+  const labels = String(csv ?? "")
+    .split(",")
+    .map((c) => c.trim())
+    .filter(Boolean);
+  return labels.length ? labels.join(", ") : "All";
 }
 
 // Pool_ID like "POOL-MD-A" -> "A".
@@ -72,6 +96,32 @@ export function poolLetter(poolId: string): string {
 export function formatTimestamp(iso: string): string {
   const m = String(iso).match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
   return m ? `${m[3]}/${m[2]}/${m[1]} ${m[4]}:${m[5]}` : String(iso);
+}
+
+const SHORT_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+// Event date for the public board header. The Settings Event_Date arrives as a
+// raw ISO/UTC instant (e.g. "2026-06-26T14:00:00.000Z"); show it as a clean
+// Melbourne-local date "27 Jun 2026" instead of the raw string. Timezone-correct
+// regardless of the viewer's device timezone; blank/unparseable values pass
+// through unchanged so nothing crashes.
+export function formatEventDate(value: string | undefined | null): string {
+  const s = String(value ?? "").trim();
+  if (s === "") return "";
+  const d = new Date(s);
+  if (Number.isNaN(d.getTime())) return s;
+  const parts = new Intl.DateTimeFormat("en-AU", {
+    timeZone: "Australia/Melbourne",
+    day: "numeric",
+    month: "numeric",
+    year: "numeric",
+  }).formatToParts(d);
+  const get = (t: string) => parts.find((p) => p.type === t)?.value ?? "";
+  const day = parseInt(get("day"), 10);
+  const month = parseInt(get("month"), 10);
+  const year = get("year");
+  if (!day || !month || !year) return s;
+  return `${day} ${SHORT_MONTHS[month - 1]} ${year}`;
 }
 
 export function humanError(reason?: string, message?: string): string {

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { TournamentState, Category } from "../lib/types";
-import { isActiveStatus, isTrueish, num, humanError, eventCourtLabels, settingValue } from "../lib/utils";
+import { isActiveStatus, isTrueish, num, humanError, eventCourtLabels, settingValue, formatCourtList } from "../lib/utils";
 import { generateFixtures, resetFixtures, saveCategory } from "../lib/api";
 import { Message } from "./ui";
 import CategoryEditModal from "./CategoryEditModal";
@@ -168,7 +168,7 @@ function CategoryControlCard({
 
       <div className="tlite-cat-grid">
         <div><span className="tlite-cat-k">Time</span><span className="tlite-cat-v">{category.Start_Time || "—"}–{category.End_Time || "—"}</span></div>
-        <div><span className="tlite-cat-k">Courts</span><span className="tlite-cat-v">{category.Court_Whitelist || "All"}</span></div>
+        <div><span className="tlite-cat-k">Courts</span><span className="tlite-cat-v">{formatCourtList(category.Court_Whitelist)}</span></div>
         <div><span className="tlite-cat-k">Match</span><span className="tlite-cat-v">{category.Match_Duration_Minutes ? `${category.Match_Duration_Minutes} min` : "—"}</span></div>
         <div><span className="tlite-cat-k">Buffer</span><span className="tlite-cat-v">{category.Buffer_Minutes === "" || category.Buffer_Minutes == null ? "—" : `${category.Buffer_Minutes} min`}</span></div>
         <div><span className="tlite-cat-k">Pool size</span><span className="tlite-cat-v">{category.Pool_Size || "Auto"}</span></div>
