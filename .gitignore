@@ -8,6 +8,9 @@ out/
 # vercel
 .vercel
 
+# local env (never commit secrets)
+.env*.local
+
 # misc
 .DS_Store
 *.tsbuildinfo

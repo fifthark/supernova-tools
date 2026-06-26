@@ -3123,91 +3123,866 @@ html, body {
 }
 
 /* ============================================================
-   Tournament Lite (.tlite-*) — Commit 1 shell stub
+   Tournament Lite (.tlite-*) — admin control surface
+   Calm, minimal, premium. Soft cards, generous spacing.
    ============================================================ */
 .tlite-shell {
-  max-width: 960px;
+  /* ShuttleFlow theme — retint the FifthArk tokens for the whole TL subtree. */
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #f4ede1;
+  --border: #ece3d3;
+  --text-primary: #1b2a47;
+  --text-secondary: #5a6a85;
+  --text-tertiary: #98a2b5;
+  --accent-profit: #f2691f;
+  --border-focus: #f2691f;
+  --shadow-card: 0 1px 2px rgba(27, 42, 71, 0.04), 0 6px 18px rgba(27, 42, 71, 0.05);
+  --tl-navy: #16243d;
+  --tl-orange: #f2691f;
+  --tl-orange-hover: #e25c14;
+  --tl-cream: #faf6ee;
+  --tlite-green-bg: #e8f6ee;
+  --tlite-green-fg: #1f7a4d;
+  --tlite-amber-bg: #fdf3e2;
+  --tlite-amber-fg: #b65c12;
+  --tlite-red-bg: #fdeeec;
+  --tlite-red-fg: #c0392b;
+  position: relative;
+  max-width: 1040px;
   margin: 0 auto;
-  padding: 24px 20px 64px;
+  padding: 40px 24px 96px;
 }
-
-.tlite-header {
-  margin-bottom: 20px;
+.tlite-shell::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: var(--tl-cream);
+  z-index: -1;
 }
+.tlite-title { font-weight: 700; }
 
+.tlite-topbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 28px;
+}
 .tlite-title {
-  font-size: 24px;
-  font-weight: 700;
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
   color: var(--text-primary);
 }
-
 .tlite-subtitle {
   margin-top: 4px;
   font-size: 14px;
+  color: var(--text-tertiary);
+}
+
+/* ---- Event summary ---- */
+.tlite-event {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  box-shadow: var(--shadow-card);
+  padding: 24px;
+  margin-bottom: 28px;
+}
+.tlite-event-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.tlite-event-name {
+  font-size: 21px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+.tlite-event-meta {
+  margin-top: 6px;
+  font-size: 13px;
   color: var(--text-secondary);
 }
-
-.tlite-tabs {
+.tlite-dot {
+  margin: 0 8px;
+  color: var(--text-tertiary);
+}
+.tlite-event-flags {
   display: flex;
-  gap: 4px;
-  margin-bottom: 20px;
-  border-bottom: 1px solid var(--border);
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.tlite-event-sub {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+.tlite-stats {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+  margin-top: 22px;
+}
+.tlite-stat {
+  background: var(--bg-tertiary);
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.tlite-stat-value {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+.tlite-stat-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+.tlite-stat-warn .tlite-stat-value {
+  color: var(--tlite-amber-fg);
 }
 
+/* ---- Segmented tabs ---- */
+.tlite-tabbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.tlite-tabs {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  background: var(--bg-tertiary);
+  border-radius: 11px;
+}
 .tlite-tab {
   appearance: none;
-  background: transparent;
   border: none;
-  border-bottom: 2px solid transparent;
-  padding: 10px 14px;
-  font-size: 14px;
+  background: transparent;
+  padding: 7px 16px;
+  border-radius: 8px;
+  font-size: 13px;
   font-weight: 500;
   color: var(--text-secondary);
   cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease;
 }
-
 .tlite-tab:hover {
   color: var(--text-primary);
 }
-
-.tlite-tab-active {
-  color: var(--accent-profit);
-  border-bottom-color: var(--accent-profit);
+.tlite-tab-active,
+.tlite-tab-active:hover {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+.tlite-refreshing {
+  font-size: 12px;
+  color: var(--text-tertiary);
 }
 
-.tlite-panel {
-  padding: 32px 24px;
+/* ---- Layout primitives ---- */
+.tlite-tabpanel { display: block; }
+.tlite-stack { display: flex; flex-direction: column; gap: 28px; }
+.tlite-section { display: flex; flex-direction: column; gap: 12px; }
+.tlite-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.tlite-section-label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent-profit);
+}
+.tlite-count {
+  margin-left: 6px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+.tlite-card {
   background: var(--bg-secondary);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-card);
+  border-radius: 14px;
+  padding: 18px;
 }
-
-.tlite-placeholder {
+.tlite-card-title { font-size: 16px; font-weight: 600; color: var(--text-primary); }
+.tlite-muted { margin-top: 4px; font-size: 13px; color: var(--text-secondary); }
+.tlite-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+}
+.tlite-empty {
+  padding: 40px 24px;
   text-align: center;
-}
-
-.tlite-placeholder-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.tlite-placeholder-text {
-  margin-top: 8px;
   font-size: 14px;
-  color: var(--text-secondary);
+  color: var(--text-tertiary);
+  background: var(--bg-secondary);
+  border: 1px dashed var(--border);
+  border-radius: 14px;
 }
 
-.tlite-placeholder-badge {
-  display: inline-block;
-  margin-top: 16px;
-  padding: 4px 10px;
+/* ---- Buttons ---- */
+.tlite-btn {
+  appearance: none;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 9px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: opacity 0.15s ease, background 0.15s ease, transform 0.05s ease;
+}
+.tlite-btn:hover { background: var(--bg-tertiary); }
+.tlite-btn:active { transform: translateY(0.5px); }
+.tlite-btn:disabled { opacity: 0.5; cursor: default; }
+.tlite-btn-primary {
+  border-color: transparent;
+  background: var(--accent-profit);
+  color: #fff;
+}
+.tlite-btn-primary:hover { background: #ec5212; }
+.tlite-btn-ghost { border-color: transparent; background: transparent; color: var(--text-secondary); }
+.tlite-btn-ghost:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+.tlite-btn-sm { padding: 6px 12px; font-size: 12px; border-radius: 8px; }
+
+/* ---- Badges ---- */
+.tlite-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 999px;
   font-size: 11px;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+.tlite-badge-muted { background: var(--bg-tertiary); color: var(--text-secondary); }
+.tlite-badge-code { background: rgba(124, 58, 237, 0.1); color: var(--accent-info); }
+.tlite-badge-scheduled { background: var(--bg-tertiary); color: var(--text-secondary); }
+.tlite-badge-completed { background: var(--tlite-green-bg); color: var(--tlite-green-fg); }
+.tlite-badge-bye { background: var(--bg-tertiary); color: var(--text-tertiary); }
+.tlite-badge-overflow { background: var(--tlite-amber-bg); color: var(--tlite-amber-fg); }
+
+/* ---- Messages ---- */
+.tlite-msg {
+  margin-top: 12px;
+  padding: 9px 12px;
+  border-radius: 9px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+.tlite-msg-compact { margin-top: 10px; padding: 7px 10px; font-size: 12px; }
+.tlite-msg-success { background: var(--tlite-green-bg); color: var(--tlite-green-fg); }
+.tlite-msg-error { background: var(--tlite-red-bg); color: var(--tlite-red-fg); }
+.tlite-msg-info { background: var(--bg-tertiary); color: var(--text-secondary); }
+
+/* ---- Setup: generate + config + categories ---- */
+.tlite-generate-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.tlite-confirm {
+  margin-top: 14px;
+  padding: 14px;
+  background: var(--tlite-amber-bg);
+  border-radius: 12px;
+}
+.tlite-warn { font-size: 13px; line-height: 1.5; color: var(--tlite-amber-fg); }
+.tlite-confirm-actions { margin-top: 12px; display: flex; gap: 8px; justify-content: flex-end; }
+.tlite-chips { display: flex; flex-wrap: wrap; gap: 10px; }
+.tlite-chip {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 10px 14px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  min-width: 96px;
+}
+.tlite-chip-label { font-size: 11px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.05em; }
+.tlite-chip-value { font-size: 15px; font-weight: 600; color: var(--text-primary); }
+.tlite-cat { display: flex; flex-direction: column; gap: 8px; }
+.tlite-cat-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.tlite-cat-name { font-size: 15px; font-weight: 600; color: var(--text-primary); }
+.tlite-cat-time { font-size: 13px; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.tlite-cat-courts { font-size: 12px; color: var(--text-tertiary); }
+.tlite-cat-stats { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 2px; font-size: 13px; color: var(--text-secondary); }
+.tlite-cat-stats b { color: var(--text-primary); font-weight: 600; }
+.tlite-cat-overflow { color: var(--tlite-amber-fg); }
+.tlite-cat-overflow b { color: var(--tlite-amber-fg); }
+
+/* ---- Entries ---- */
+.tlite-entry { display: flex; flex-direction: column; gap: 4px; }
+.tlite-entry-out { opacity: 0.55; }
+.tlite-entry-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.tlite-entry-name { font-size: 15px; font-weight: 500; color: var(--text-primary); }
+.tlite-entry-members { font-size: 12px; color: var(--text-tertiary); }
+
+/* ---- Matches ---- */
+.tlite-pool { display: flex; flex-direction: column; gap: 10px; }
+.tlite-pool-label { font-size: 12px; font-weight: 600; color: var(--text-secondary); }
+.tlite-matches {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+.tlite-match { display: flex; flex-direction: column; gap: 12px; }
+.tlite-match-done { background: #fcfdfc; border-color: #e3efe8; }
+.tlite-match-bye, .tlite-match-overflow { opacity: 0.8; }
+.tlite-match-meta { display: flex; align-items: center; gap: 10px; }
+.tlite-match-round {
+  font-size: 11px;
+  font-weight: 700;
   color: var(--text-tertiary);
   background: var(--bg-tertiary);
-  border-radius: var(--radius-sm);
+  padding: 2px 7px;
+  border-radius: 6px;
 }
+.tlite-match-where { font-size: 12px; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.tlite-match-flex { flex: 1; }
+.tlite-match-teams { display: flex; align-items: center; gap: 10px; }
+.tlite-team { font-size: 15px; font-weight: 500; color: var(--text-primary); flex: 1; }
+.tlite-team:last-child { text-align: right; }
+.tlite-team-win { font-weight: 600; }
+.tlite-vs { font-size: 12px; color: var(--text-tertiary); }
+.tlite-match-score { display: flex; align-items: center; gap: 8px; }
+.tlite-score-input {
+  width: 56px;
+  height: 40px;
+  text-align: center;
+  font-size: 17px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  outline: none;
+}
+.tlite-score-input:focus { border-color: var(--border-focus); background: var(--bg-secondary); }
+.tlite-score-sep { color: var(--text-tertiary); font-weight: 600; }
+.tlite-match-score .tlite-btn { margin-left: auto; }
+
+/* ---- Leaderboard ---- */
+.tlite-lb-scroll { overflow-x: auto; }
+.tlite-lb { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.tlite-lb th {
+  text-align: right;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  padding: 6px 12px 10px;
+  border-bottom: 1px solid var(--border);
+}
+.tlite-lb th.tlite-lb-th-rank { text-align: center; width: 40px; }
+.tlite-lb th:nth-child(2) { text-align: left; }
+.tlite-lb td { padding: 11px 12px; border-bottom: 1px solid rgba(0, 0, 0, 0.04); font-size: 14px; color: var(--text-secondary); }
+.tlite-lb tr:last-child td { border-bottom: none; }
+.tlite-lb-rank { text-align: center; font-weight: 600; color: var(--text-primary); }
+.tlite-lb-name { text-align: left; font-weight: 500; color: var(--text-primary); }
+.tlite-lb-num { text-align: right; }
+.tlite-pd-pos { color: var(--tlite-green-fg); }
+.tlite-pd-neg { color: var(--tlite-red-fg); }
+
+/* ---- Loading / error states ---- */
+.tlite-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 80px 24px;
+  text-align: center;
+}
+.tlite-state-title { font-size: 17px; font-weight: 600; color: var(--text-primary); }
+.tlite-state-text { font-size: 14px; color: var(--text-secondary); max-width: 360px; }
+.tlite-spinner {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2.5px solid var(--border);
+  border-top-color: var(--accent-profit);
+  animation: tlite-spin 0.7s linear infinite;
+}
+@keyframes tlite-spin { to { transform: rotate(360deg); } }
+
+/* ---- Responsive ---- */
+@media (max-width: 720px) {
+  .tlite-shell { padding: 24px 16px 80px; }
+  .tlite-stats { grid-template-columns: repeat(3, 1fr); }
+  .tlite-matches, .tlite-cards { grid-template-columns: 1fr; }
+}
+@media (max-width: 420px) {
+  .tlite-stats { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* ============================================================
+   Tournament Lite v2 — ShuttleFlow surfaces + setup controls
+   ============================================================ */
+
+/* Navy event summary surface */
+.tlite-event {
+  background: var(--tl-navy);
+  border-color: var(--tl-navy);
+  border-radius: 20px;
+  box-shadow: 0 12px 34px rgba(22, 36, 61, 0.18);
+  color: #fff;
+}
+.tlite-event-name { color: #fff; }
+.tlite-event-meta { color: rgba(255, 255, 255, 0.72); }
+.tlite-event .tlite-dot { color: rgba(255, 255, 255, 0.4); }
+.tlite-event-sub { color: rgba(255, 255, 255, 0.6); }
+.tlite-event .tlite-stat { background: rgba(255, 255, 255, 0.07); }
+.tlite-event .tlite-stat-value { color: #fff; }
+.tlite-event .tlite-stat-label { color: rgba(255, 255, 255, 0.55); }
+.tlite-event .tlite-stat-warn .tlite-stat-value { color: #ffb98a; }
+.tlite-event .tlite-badge-muted,
+.tlite-event .tlite-badge-scheduled { background: rgba(255, 255, 255, 0.13); color: rgba(255, 255, 255, 0.88); }
+
+/* Navy active tab pill */
+.tlite-tab-active,
+.tlite-tab-active:hover {
+  background: var(--tl-navy);
+  color: #fff;
+  box-shadow: 0 1px 3px rgba(22, 36, 61, 0.22);
+}
+
+/* Danger (reset) button */
+.tlite-btn-danger {
+  border-color: transparent;
+  background: var(--tlite-red-bg);
+  color: var(--tlite-red-fg);
+}
+.tlite-btn-danger:hover { background: #fbe1dd; }
+
+/* Category control cards */
+.tlite-cards-wide { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+.tlite-cat { gap: 12px; }
+.tlite-cat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px 16px; }
+.tlite-cat-grid > div { display: flex; flex-direction: column; gap: 1px; }
+.tlite-cat-k { font-size: 11px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.04em; }
+.tlite-cat-v { font-size: 14px; font-weight: 600; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+.tlite-cat-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* Edit modal */
+.tlite-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(22, 36, 61, 0.42);
+  backdrop-filter: blur(2px);
+}
+.tlite-modal {
+  width: 100%;
+  max-width: 460px;
+  background: var(--bg-secondary);
+  border-radius: 20px;
+  box-shadow: 0 24px 60px rgba(22, 36, 61, 0.28);
+  overflow: hidden;
+}
+.tlite-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px;
+  background: var(--tl-navy);
+  color: #fff;
+}
+.tlite-modal-title { font-size: 16px; font-weight: 600; }
+.tlite-modal-x {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 4px;
+}
+.tlite-modal-x:hover { color: #fff; }
+.tlite-modal-body { padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+.tlite-field-row { display: flex; gap: 12px; flex-wrap: wrap; }
+.tlite-field { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 96px; }
+.tlite-field-label { font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-tertiary); }
+.tlite-field-hint { font-size: 12px; color: var(--text-tertiary); }
+.tlite-input {
+  height: 40px;
+  padding: 0 12px;
+  font-size: 15px;
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  outline: none;
+}
+.tlite-input:focus { border-color: var(--border-focus); }
+.tlite-court-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.tlite-court-chip {
+  appearance: none;
+  padding: 7px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+  border: 1px solid transparent;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.tlite-court-chip-on { background: var(--tl-orange); color: #fff; }
+.tlite-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 16px 20px;
+  border-top: 1px solid var(--border);
+}
+
+@media (max-width: 720px) {
+  .tlite-cards-wide { grid-template-columns: 1fr; }
+}
+
+/* ============================================================
+   Tournament Lite v3 — category-first nav + sync
+   ============================================================ */
+.tlite-topbar-id { min-width: 0; }
+.tlite-sync { display: flex; align-items: center; gap: 10px; }
+.tlite-synced { font-size: 12px; color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
+
+/* Category nav — segmented control, ShuttleFlow navy active pill */
+.tlite-catnav {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: var(--bg-tertiary);
+  border-radius: 12px;
+  overflow-x: auto;
+}
+.tlite-catnav-tab {
+  appearance: none;
+  border: none;
+  background: transparent;
+  white-space: nowrap;
+  padding: 9px 18px;
+  border-radius: 9px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+.tlite-catnav-tab:hover { color: var(--text-primary); }
+.tlite-catnav-tab-active,
+.tlite-catnav-tab-active:hover {
+  background: var(--tl-navy);
+  color: #fff;
+  box-shadow: 0 1px 3px rgba(22, 36, 61, 0.18);
+}
+
+/* Per-category summary cards */
+.tlite-catsummary { display: flex; flex-direction: column; gap: 10px; }
+.tlite-catwindow {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--tl-orange);
+  font-variant-numeric: tabular-nums;
+}
+.tlite-catstats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+  gap: 10px;
+}
+.tlite-catstat {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.tlite-catstat-value { font-size: 22px; font-weight: 700; color: var(--tl-navy); font-variant-numeric: tabular-nums; }
+.tlite-catstat-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+.tlite-catstat-warn .tlite-catstat-value { color: var(--tlite-amber-fg); }
+
+/* Repair standings — emergency-only action */
+.tlite-repair {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+.tlite-repair-note { font-size: 12px; color: var(--text-tertiary); }
+
+@media (max-width: 720px) {
+  .tlite-sync { width: 100%; justify-content: space-between; }
+  .tlite-catstats { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 420px) {
+  .tlite-catstats { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* ============================================================
+   Tournament Lite v3 — player board + Points column
+   ============================================================ */
+/* Prominent Points column (admin + player leaderboards) */
+.tlite-lb-th-pts { color: var(--tl-orange); }
+.tlite-lb-pts { font-weight: 700; color: var(--tl-navy); }
+
+/* Player board */
+.tlite-board { display: flex; flex-direction: column; gap: 20px; }
+.tlite-board-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  background: var(--tl-navy);
+  color: #fff;
+  border-radius: 18px;
+  padding: 22px 24px;
+}
+.tlite-board-name { font-size: 22px; font-weight: 700; letter-spacing: -0.01em; color: #fff; }
+.tlite-board-meta { margin-top: 4px; font-size: 13px; color: rgba(255, 255, 255, 0.62); }
+.tlite-board-sync { display: flex; align-items: center; gap: 10px; }
+.tlite-board-header .tlite-synced { color: rgba(255, 255, 255, 0.62); }
+
+/* Matches | Leaderboard toggle — orange active pill */
+.tlite-board-toggle {
+  display: inline-flex;
+  gap: 2px;
+  padding: 4px;
+  background: var(--bg-tertiary);
+  border-radius: 11px;
+}
+.tlite-toggle-tab {
+  appearance: none;
+  border: none;
+  background: transparent;
+  padding: 8px 22px;
+  border-radius: 9px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+.tlite-toggle-tab:hover { color: var(--text-primary); }
+.tlite-toggle-tab-active,
+.tlite-toggle-tab-active:hover {
+  background: var(--tl-orange);
+  color: #fff;
+  box-shadow: 0 1px 3px rgba(242, 105, 31, 0.25);
+}
+
+/* Read-only score in a board match card */
+.tlite-board-score {
+  font-weight: 700;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  padding: 0 8px;
+}
+
+@media (max-width: 720px) {
+  .tlite-board-sync { width: auto; }
+}
+
+/* ============================================================
+   Tournament Lite v3.1 — sync wording + player link
+   ============================================================ */
+.tlite-auto { color: var(--tlite-green-fg); }
+
+.tlite-live { display: flex; flex-direction: column; gap: 1px; }
+.tlite-live-top {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+}
+.tlite-live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #4ade80;
+  animation: tlite-pulse 1.8s ease-out infinite;
+}
+@keyframes tlite-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.55); }
+  70% { box-shadow: 0 0 0 6px rgba(74, 222, 128, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0); }
+}
+.tlite-live-sub { font-size: 11px; color: rgba(255, 255, 255, 0.55); }
+.tlite-refresh-icon { min-width: 34px; padding: 6px 9px; font-size: 14px; line-height: 1; }
+
+.tlite-linkcard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.tlite-linkcard-body { min-width: 0; }
+.tlite-link-url {
+  margin-top: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--tl-navy);
+  word-break: break-all;
+}
+
+/* ============================================================
+   Tournament Lite v3.2 — player Matches (Upcoming/Results + search)
+   ============================================================ */
+.tlite-subtoggle {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  background: var(--bg-tertiary);
+  border-radius: 10px;
+}
+.tlite-subtoggle-tab {
+  appearance: none;
+  border: none;
+  background: transparent;
+  padding: 7px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+.tlite-subtoggle-tab:hover { color: var(--text-primary); }
+.tlite-subtoggle-tab-active,
+.tlite-subtoggle-tab-active:hover {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+.tlite-board-next {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--tlite-amber-bg);
+  border-radius: 12px;
+}
+.tlite-next-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--tl-orange);
+}
+.tlite-next-val { font-size: 14px; font-weight: 600; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+
+.tlite-board-search {
+  width: 100%;
+  padding: 12px 14px;
+  font-size: 15px;
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  outline: none;
+}
+.tlite-board-search:focus { border-color: var(--border-focus); }
+.tlite-board-search::placeholder { color: var(--text-tertiary); }
+.tlite-search-count { font-size: 12px; color: var(--text-tertiary); }
+
+/* Player match grid — one column on mobile, max two on desktop */
+.tlite-board-matches { display: grid; grid-template-columns: 1fr; gap: 12px; }
+@media (min-width: 680px) {
+  .tlite-board-matches { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+.tlite-pmatch { display: flex; flex-direction: column; gap: 12px; }
+.tlite-pmatch-done { background: #fcfdfc; border-color: #e3efe8; }
+.tlite-pmatch-meta { display: flex; align-items: center; gap: 8px; }
+.tlite-badge-court { background: rgba(22, 36, 61, 0.07); color: var(--tl-navy); }
+.tlite-pmatch-time { font-size: 13px; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+
+.tlite-pmatch-rows { display: flex; flex-direction: column; gap: 6px; }
+.tlite-pmatch-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.tlite-pmatch-team {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 16px;
+  color: var(--text-primary);
+  min-width: 0;
+}
+.tlite-pmatch-score { font-size: 18px; font-weight: 700; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+.tlite-pmatch-win .tlite-pmatch-team { font-weight: 700; color: var(--tl-navy); }
+.tlite-pmatch-win .tlite-pmatch-score { color: var(--tl-navy); }
+.tlite-pmatch-lose .tlite-pmatch-team,
+.tlite-pmatch-lose .tlite-pmatch-score { color: var(--text-tertiary); font-weight: 500; }
+.tlite-win-tick { color: var(--tlite-green-fg); font-weight: 700; }
+
+/* ---- Admin login gate ---- */
+.tlite-login { display: flex; justify-content: center; align-items: flex-start; padding-top: 64px; }
+.tlite-login-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 380px;
+  padding: 28px 24px;
+}
+.tlite-login-title { font-size: 20px; font-weight: 700; color: var(--tl-navy); }
+.tlite-login-input {
+  width: 100%;
+  padding: 12px 14px;
+  font-size: 15px;
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  outline: none;
+}
+.tlite-login-input:focus { border-color: var(--border-focus); }
+.tlite-login-err { font-size: 13px; color: var(--tlite-red-fg); }
+.tlite-login-card .tlite-btn-primary { margin-top: 4px; }

@@ -6,6 +6,17 @@ import { usePathname } from "next/navigation";
 export default function AppNav() {
   const pathname = usePathname();
 
+  // The public player board (/tournament-lite/board/<token> and /live/<token>) is
+  // read-only and must not surface admin tools or navigation. The admin login
+  // page is a focused gate and also hides the nav.
+  if (
+    pathname?.startsWith("/tournament-lite/board") ||
+    pathname?.startsWith("/live") ||
+    pathname === "/tournaments/login"
+  ) {
+    return null;
+  }
+
   const links = [
     { href: "/", label: "Tournament Calculator" },
     { href: "/fb-ads", label: "FB Ads Dashboard" },
