@@ -8,7 +8,7 @@ import { useState } from "react";
 export default function PlayerLinkCard({ token }: { token: string }) {
   const [copied, setCopied] = useState(false);
   const origin = typeof window !== "undefined" ? window.location.origin : "";
-  const url = token ? `${origin}/live/${token}` : "";
+  const url = token ? `${origin}/live/${encodeURIComponent(token)}` : "";
 
   async function copy() {
     if (!url) return;

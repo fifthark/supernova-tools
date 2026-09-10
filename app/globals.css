@@ -3986,3 +3986,16 @@ html, body {
 .tlite-login-input:focus { border-color: var(--border-focus); }
 .tlite-login-err { font-size: 13px; color: var(--tlite-red-fg); }
 .tlite-login-card .tlite-btn-primary { margin-top: 4px; }
+
+/* Tournament management extends the existing Tournament Lite visual system. */
+.tlite-event-picker { padding-bottom: 0; display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-end; }
+.tlite-event-picker > .tlite-field { flex: 1; min-width: 240px; }
+.tlite-new-event { display: flex; flex: 1; gap: 8px; align-items: center; }
+.tlite-control-group { border: 0; padding: 0; margin: 0; min-width: 0; }
+.tlite-settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+.tlite-preview { max-height: 320px; overflow: auto; }
+.tlite-input { box-sizing: border-box; }
+.tlite-modal { max-height: 90vh; overflow-y: auto; }
+@media (max-width: 600px) { .tlite-new-event { flex-wrap: wrap; } .tlite-new-event > * { width: 100%; } }
+
+@media (max-width: 640px) { .nav-bar { flex-wrap: wrap; gap: 8px; height: auto; padding: 12px 16px; } .nav-links { min-width: 0; max-width: 100%; overflow-x: auto; } .nav-link { white-space: nowrap; } }

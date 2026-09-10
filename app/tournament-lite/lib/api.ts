@@ -1,47 +1,30 @@
-// Tournament Lite — client-side calls to the FifthArk server proxy ONLY.
-// The proxy injects the admin secret server-side; nothing here knows it.
-
+"use client";
+import { createContext, useContext, useMemo } from "react";
 import type { TournamentState, ActionResult, PublicBoard } from "./types";
-
-async function call(path: string, body?: unknown): Promise<ActionResult & Record<string, unknown>> {
+export const TournamentContext = createContext("legacy");
+export async function adminCall(path: string, body: Record<string, unknown> = {}): Promise<ActionResult> {
   try {
-    const res = await fetch(path, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: body === undefined ? undefined : JSON.stringify(body),
-    });
-    return (await res.json()) as ActionResult & Record<string, unknown>;
-  } catch {
-    return { ok: false, reason: "network_error", message: "Network error — check your connection and try again." };
-  }
+    const res = await fetch(`/api/tournament-lite/${path}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    if (res.status === 401) return { ok: false, reason: "unauthorized", message: "Your session expired. Sign in again." };
+    return await res.json();
+  } catch { return { ok: false, reason: "network_error", message: "Connection interrupted. Refresh to check whether your change saved before retrying." }; }
 }
-
-export function fetchState(): Promise<TournamentState> {
-  return call("/api/tournament-lite/state") as Promise<TournamentState>;
+export function useTournamentApi() {
+  const tournamentId = useContext(TournamentContext);
+  return useMemo(() => {
+    const call = (path: string, body: Record<string, unknown> = {}) => adminCall(path, { ...body, tournamentId });
+    return {
+      fetchState: () => call("state") as Promise<TournamentState>,
+      generateFixtures: (opts: { categoryId?: string; force?: boolean; preview?: boolean; confirm?: boolean; previewToken?: string; requireSafeSchedule?: boolean; acceptUnscheduled?: boolean } = {}) => call("generate", opts),
+      resetFixtures: (categoryId?: string) => call("reset", categoryId ? { categoryId } : {}),
+      saveCategory: (body: Record<string, unknown>) => call("category", body),
+      saveSettings: (body: Record<string, unknown>) => call("settings", body),
+      saveEntry: (body: Record<string, unknown>) => call("entries", body),
+      submitScore: (matchId: string, score1: number, score2: number) => call("score", { matchId, score1, score2 }),
+      recalcLeaderboard: () => call("recalc"),
+    };
+  }, [tournamentId]);
 }
-
-export function generateFixtures(opts?: { categoryId?: string; force?: boolean }): Promise<ActionResult> {
-  const body: Record<string, unknown> = { force: opts?.force !== false };
-  if (opts?.categoryId) body.categoryId = opts.categoryId;
-  return call("/api/tournament-lite/generate", body);
-}
-
-export function resetFixtures(categoryId?: string): Promise<ActionResult> {
-  return call("/api/tournament-lite/reset", categoryId ? { categoryId } : {});
-}
-
-export function saveCategory(payload: Record<string, unknown>): Promise<ActionResult> {
-  return call("/api/tournament-lite/category", payload);
-}
-
-export function submitScore(matchId: string, score1: number, score2: number): Promise<ActionResult> {
-  return call("/api/tournament-lite/score", { matchId, score1, score2 });
-}
-
-export function recalcLeaderboard(): Promise<ActionResult> {
-  return call("/api/tournament-lite/recalc", {});
-}
-
 // Public, read-only board (no admin secret). GET via the FifthArk proxy.
 export async function fetchPublicBoard(token: string, categoryId?: string): Promise<PublicBoard> {
   const qs = new URLSearchParams({ token });

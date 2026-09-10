@@ -405,13 +405,13 @@ describe("Winner identification", () => {
       makeRecord({
         campaignId: "c1", creativeName: "CPA Winner",
         impressions: 6000, linkClicks: 100, spend: 50,
-        conversions: 10, costPerConversion: 5, conversionValue: 200, reach: 4000,
+        conversions: 10, conversionValue: 200, reach: 4000,
       }),
       makeRecord({
         campaignId: "c2", creativeName: "CPA Loser",
         adId: "ad2",
         impressions: 6000, linkClicks: 80, spend: 80,
-        conversions: 4, costPerConversion: 20, conversionValue: 100, reach: 4000,
+        conversions: 4, conversionValue: 100, reach: 4000,
       }),
     ];
 
@@ -755,7 +755,7 @@ describe("Missing-field scenarios", () => {
         creativeName: "Leads Creative",
         adId: "ad2",
         impressions: 8000, linkClicks: 150, spend: 80,
-        conversions: 20, costPerConversion: 4, conversionValue: 400, reach: 5000,
+        conversions: 20, conversionValue: 400, reach: 5000,
       }),
     ];
 

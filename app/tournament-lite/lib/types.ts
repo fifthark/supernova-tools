@@ -11,6 +11,9 @@ export interface Category {
   Category_ID: string;
   Category_Name?: string;
   Event_Code?: string;
+  Fixture_Mode?: string;
+  Club_A?: string;
+  Club_B?: string;
   Pool_Size?: string | number;
   Match_Duration_Minutes?: string | number;
   Buffer_Minutes?: string | number;
@@ -22,6 +25,7 @@ export interface Category {
 }
 
 export interface Entry {
+  Club_Name?: string;
   Entry_ID: string;
   Category_ID: string;
   Entry_Name?: string;
@@ -44,6 +48,8 @@ export interface Pool {
 }
 
 export interface Match {
+  Entry1_Club?: string;
+  Entry2_Club?: string;
   Match_ID: string;
   Category_ID: string;
   Pool_ID: string;
@@ -64,6 +70,7 @@ export interface Match {
 }
 
 export interface LeaderRow {
+  Club_Name?: string;
   Category_ID: string;
   Pool_ID: string;
   Entry_ID: string;
@@ -79,6 +86,10 @@ export interface LeaderRow {
 }
 
 export interface TournamentState {
+  tournament?: Tournament;
+  overallLeaderboard?: LeaderRow[];
+  clubSummary?: ClubSummary[];
+  schedule?: Schedule;
   ok: boolean;
   reason?: string;
   message?: string;
@@ -105,6 +116,10 @@ export interface PublicCategory {
 }
 
 export interface PublicBoard {
+  tournament?: Tournament;
+  overallLeaderboard?: LeaderRow[];
+  clubSummary?: ClubSummary[];
+  schedule?: Schedule;
   ok: boolean;
   reason?: string;
   message?: string;
@@ -117,6 +132,14 @@ export interface PublicBoard {
 }
 
 export interface ActionResult {
+  generationSchedule?: Schedule;
+  previewToken?: string;
+  matches?: Match[];
+  tournaments?: Tournament[];
+  tournament?: Tournament;
+  overallLeaderboard?: LeaderRow[];
+  clubSummary?: ClubSummary[];
+  schedule?: Schedule;
   ok: boolean;
   reason?: string;
   message?: string;
@@ -125,3 +148,7 @@ export interface ActionResult {
   counts?: { matches?: number; overflowMatches?: number; [k: string]: unknown };
   warnings?: unknown[];
 }
+
+export interface Tournament { id: string; name: string; archived: boolean; pending?: boolean }
+export interface Schedule { ready: boolean; conflicts: unknown[]; unscheduledMatchIds: string[]; invalidMatchIds: string[] }
+export interface ClubSummary { Club_Name: string; Entries: number; Played: number; Wins: number; Losses: number; Points: number; Point_Diff: number }

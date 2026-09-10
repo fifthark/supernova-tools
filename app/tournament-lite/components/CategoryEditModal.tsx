@@ -14,6 +14,10 @@ export default function CategoryEditModal({
   onClose: () => void;
   onSave: (patch: Record<string, unknown>) => Promise<{ ok: boolean; message?: string }>;
 }) {
+  const [name, setName] = useState(category.Category_Name || "");
+  const [mode, setMode] = useState(category.Fixture_Mode || "RoundRobin");
+  const [clubA, setClubA] = useState(category.Club_A || "");
+  const [clubB, setClubB] = useState(category.Club_B || "");
   const [start, setStart] = useState(String(category.Start_Time ?? ""));
   const [end, setEnd] = useState(String(category.End_Time ?? ""));
   const [dur, setDur] = useState(String(category.Match_Duration_Minutes ?? ""));
@@ -39,6 +43,7 @@ export default function CategoryEditModal({
 
   async function save() {
     setErr("");
+    if (!name.trim() || (mode === "InterClub" && (!clubA.trim() || !clubB.trim() || clubA.trim().toLowerCase() === clubB.trim().toLowerCase()))) { setErr("Enter a category name and two distinct clubs for inter-club matches."); return; }
     if (!validTime(start) || !validTime(end)) {
       setErr("Times must be in HH:MM format.");
       return;
@@ -50,6 +55,7 @@ export default function CategoryEditModal({
     const allSelected = courtLabels.length > 0 && courtLabels.every((c) => courts.has(c));
     const whitelist = allSelected ? "" : courtLabels.filter((c) => courts.has(c)).join(",");
     const patch: Record<string, unknown> = {
+      Category_Name: name.trim(), Fixture_Mode: mode, Club_A: clubA.trim(), Club_B: clubB.trim(),
       Start_Time: start.trim(),
       End_Time: end.trim(),
       Court_Whitelist: whitelist,
@@ -75,14 +81,18 @@ export default function CategoryEditModal({
         </div>
 
         <div className="tlite-modal-body">
+          <label className="tlite-field">Category name<input className="tlite-input" value={name} onChange={e => setName(e.target.value)} /></label>
+          <label className="tlite-field">Format<select className="tlite-input" value={mode} onChange={e => setMode(e.target.value)}><option value="RoundRobin">Round robin within pools</option><option value="InterClub">Every team vs the other club</option></select></label>
+          {mode === "InterClub" && <div className="tlite-field-row"><label className="tlite-field">Club A<input className="tlite-input" value={clubA} onChange={e => setClubA(e.target.value)} /></label><label className="tlite-field">Club B<input className="tlite-input" value={clubB} onChange={e => setClubB(e.target.value)} /></label></div>}
+          <p className="tlite-field-hint">Blank times use the tournament window. Pool size applies to round robin only.</p>
           <div className="tlite-field-row">
             <label className="tlite-field">
               <span className="tlite-field-label">Start</span>
-              <input className="tlite-input" placeholder="HH:MM" value={start} onChange={(e) => setStart(e.target.value)} />
+              <input className="tlite-input" type="time" placeholder="HH:MM" value={start} onChange={(e) => setStart(e.target.value)} />
             </label>
             <label className="tlite-field">
               <span className="tlite-field-label">End</span>
-              <input className="tlite-input" placeholder="HH:MM" value={end} onChange={(e) => setEnd(e.target.value)} />
+              <input className="tlite-input" type="time" placeholder="HH:MM" value={end} onChange={(e) => setEnd(e.target.value)} />
             </label>
           </div>
 

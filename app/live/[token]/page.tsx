@@ -10,6 +10,6 @@ export const metadata: Metadata = {
   description: "Live matches and standings",
 };
 
-export default function LiveBoardPage({ params }: { params: { token: string } }) {
-  return <PlayerBoard token={params.token} />;
+export default async function LiveBoardPage({ params }: { params: Promise<{ token: string }> }) {
+  return <PlayerBoard token={(await params).token} />;
 }

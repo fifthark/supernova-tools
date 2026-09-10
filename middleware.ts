@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { verifySession } from "./app/tournament-lite/lib/session";
 import type { NextRequest } from "next/server";
 
 // Lightweight admin access guard for Tournament Lite.
@@ -23,13 +24,14 @@ export const config = {
     "/api/tournament-lite/recalc",
     "/api/tournament-lite/reset",
     "/api/tournament-lite/category",
+    "/api/tournament-lite/entries",
+    "/api/tournament-lite/settings",
+    "/api/tournament-lite/tournaments",
   ],
 };
 
-export function middleware(req: NextRequest) {
-  const token = process.env.TOURNAMENT_LITE_ADMIN_SESSION_TOKEN;
-  const cookie = req.cookies.get(COOKIE)?.value;
-  const authed = Boolean(token) && cookie === token;
+export async function middleware(req: NextRequest) {
+  const authed = await verifySession(req.cookies.get(COOKIE)?.value);
   if (authed) return NextResponse.next();
 
   const { pathname } = req.nextUrl;

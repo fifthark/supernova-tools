@@ -8,15 +8,16 @@ import EntriesTab from "./EntriesTab";
 import MatchesTab from "./MatchesTab";
 import LeaderboardTab from "./LeaderboardTab";
 import { LoadingState, ErrorState } from "./ui";
-import { fetchState } from "../lib/api";
+import { useTournamentApi, TournamentContext, adminCall } from "../lib/api";
 import { humanError, isActiveStatus, num, formatClock } from "../lib/utils";
-import type { TournamentState, Match, LeaderRow } from "../lib/types";
+import type { TournamentState, Match, LeaderRow, Tournament } from "../lib/types";
 
 type Status = "loading" | "error" | "ready";
 
 const AUTO_REFRESH_MS = 25000; // admin: 20–30s
 
-export default function EventWorkspace() {
+function SelectedWorkspace() {
+  const { fetchState } = useTournamentApi();
   const [activeTab, setActiveTab] = useState<WorkspaceTab>("setup");
   const [selectedCat, setSelectedCat] = useState<string>("");
   const [state, setState] = useState<TournamentState | null>(null);
@@ -42,7 +43,7 @@ export default function EventWorkspace() {
       setErrorMsg(humanError(res.reason, res.message));
       setStatus("error");
     }
-  }, []);
+  }, [fetchState]);
 
   useEffect(() => {
     void load();
@@ -57,7 +58,7 @@ export default function EventWorkspace() {
       setLastSynced(new Date());
     }
     setRefreshing(false);
-  }, []);
+  }, [fetchState]);
 
   // Instant local merge after a score save (no full refetch needed).
   const applyScore = useCallback((matchId: string, result: { match?: Match; leaderboard?: LeaderRow[] }) => {
@@ -112,7 +113,7 @@ export default function EventWorkspace() {
       <header className="tlite-topbar">
         <div className="tlite-topbar-id">
           <h1 className="tlite-title">Tournament Lite</h1>
-          <p className="tlite-subtitle">Round-robin control surface</p>
+          <p className="tlite-subtitle">Teams, fixtures and live results</p>
         </div>
         {status === "ready" && (
           <div className="tlite-sync">
@@ -132,7 +133,8 @@ export default function EventWorkspace() {
             <button
               className="tlite-btn tlite-btn-sm tlite-btn-ghost"
               onClick={async () => {
-                await fetch("/api/tournament-lite/admin-logout", { method: "POST" });
+                const response = await fetch("/api/tournament-lite/admin-logout", { method: "POST" });
+                if (!response.ok) { setErrorMsg("Could not sign out. Please retry."); setStatus("error"); return; }
                 window.location.href = "/tournaments/login";
               }}
             >
@@ -155,8 +157,10 @@ export default function EventWorkspace() {
           </div>
 
           <section className="tlite-tabpanel" role="tabpanel">
+            {state.tournament?.archived && <p className="tlite-warn">Archived tournament. Changes are disabled.</p>}
+            <fieldset className="tlite-control-group" disabled={state.tournament?.archived}>
             {activeTab === "setup" && <SetupTab state={state} onRefresh={refresh} />}
-            {activeTab === "entries" && <EntriesTab state={state} />}
+            {activeTab === "entries" && <EntriesTab state={state} onRefresh={refresh} />}
             {activeTab === "matches" && (
               <MatchesTab
                 state={state}
@@ -177,9 +181,50 @@ export default function EventWorkspace() {
                 onHold={setHold}
               />
             )}
+            </fieldset>
           </section>
         </>
       )}
     </main>
   );
+}
+
+export default function EventWorkspace() {
+  const [id, setId] = useState("legacy");
+  const [events, setEvents] = useState<Tournament[]>([]);
+  const [name, setName] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const request = useRef<{ name: string; id: string } | null>(null);
+  const list = useCallback(async () => {
+    const r = await adminCall("tournaments");
+    if (r.ok) setEvents(r.tournaments ?? []);
+    else setError(r.message || "Could not load tournaments.");
+  }, []);
+  useEffect(() => { void list(); }, [list]);
+  async function create(e: React.FormEvent) {
+    e.preventDefault(); setBusy(true); setError("");
+    const trimmed = name.trim();
+    if (request.current?.name !== trimmed) request.current = { name: trimmed, id: crypto.randomUUID() };
+    const r = await adminCall("tournaments", { action: "createTournament", name: trimmed, requestId: request.current.id });
+    if (r.ok && r.tournament) { await list(); setId(r.tournament.id); setName(""); request.current = null; }
+    else setError(r.message || "Could not create tournament. Retry with the same name.");
+    setBusy(false);
+  }
+  return <>
+    <section className="tlite-shell tlite-event-picker">
+      <label className="tlite-field"><span className="tlite-field-label">Tournament</span>
+        <select className="tlite-input" value={id} disabled={busy} onChange={e => setId(e.target.value)}>
+          {!events.length && <option value="legacy">Original tournament</option>}
+          {events.map(t => <option key={t.id} value={t.id} disabled={t.pending}>{t.name}{t.archived ? " · Archived" : t.pending ? " · Setup incomplete" : ""}</option>)}
+        </select>
+      </label>
+      <form onSubmit={create} className="tlite-new-event">
+        <input className="tlite-input" aria-label="New tournament name" placeholder="New tournament name" required maxLength={150} value={name} onChange={e => setName(e.target.value)} disabled={busy} />
+        <button className="tlite-btn tlite-btn-primary" disabled={busy || !name.trim()}>{busy ? "Creating…" : "Create tournament"}</button>
+      </form>
+      {error && <div className="tlite-msg tlite-msg-error" role="alert">{error}</div>}
+    </section>
+    <TournamentContext.Provider value={id}><SelectedWorkspace key={id} /></TournamentContext.Provider>
+  </>;
 }

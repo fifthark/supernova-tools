@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type { TournamentState } from "../lib/types";
 import { num, groupBy, poolLetter, humanError, categoryStats } from "../lib/utils";
-import { recalcLeaderboard } from "../lib/api";
+import { useTournamentApi } from "../lib/api";
 import { Message, CategoryNav, CategoryStats } from "./ui";
 
 type HoldFn = (on: boolean) => void;
@@ -23,6 +23,7 @@ export default function LeaderboardTab({
   onRecalc: () => Promise<void>;
   onHold: HoldFn;
 }) {
+  const { recalcLeaderboard } = useTournamentApi();
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
 

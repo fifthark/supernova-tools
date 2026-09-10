@@ -49,30 +49,13 @@ export function groupBy<T>(items: T[], key: (item: T) => string): Map<string, T[
   return map;
 }
 
-// Venues can have up to 15 courts, so the court bank always offers at least
-// Court 1..15 — the admin must be able to pick any court up to a 15-court venue
-// even before the global Settings court bank has been configured.
-export const DEFAULT_COURT_COUNT = 15;
-
-// Court bank used for per-category court selection. Always exposes the numbered
-// bank Court 1..N (N = max(Num_Courts, 15)) so the admin can select ANY court up
-// to a 15-court venue, then appends any custom (non "Court N") labels configured
-// in Settings.Court_Names (e.g. "East", "Show Court"). When Court_Names is
-// missing this is exactly Court 1..15 — never an old Court 1–6 / 6–14 limit.
+// Match the backend's configured court bank exactly.
 export function eventCourtLabels(state: TournamentState): string[] {
-  const n = Math.max(num(settingValue(state, "Num_Courts")), DEFAULT_COURT_COUNT);
-  const numbered: string[] = [];
-  for (let i = 1; i <= n; i += 1) numbered.push(`Court ${i}`);
-
-  // Keep any custom court labels the venue configured without dropping the
-  // standard numbered bank (so 1..15 are always selectable).
-  const extras = settingValue(state, "Court_Names")
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean)
-    .filter((label) => !numbered.some((c) => c.toLowerCase() === label.toLowerCase()));
-
-  return [...numbered, ...extras];
+  const count = Math.floor(num(settingValue(state, "Num_Courts")));
+  if (count < 1) return [];
+  const names = settingValue(state, "Court_Names").split(",").map(s => s.trim()).filter(Boolean);
+  if (names.length) return names.length === count && new Set(names.map(n => n.toLowerCase())).size === count ? names : [];
+  return Array.from({ length: count }, (_, i) => `Court ${i + 1}`);
 }
 
 // Display a category's Court_Whitelist cleanly with spaces:

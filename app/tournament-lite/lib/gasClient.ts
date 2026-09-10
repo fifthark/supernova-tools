@@ -19,11 +19,8 @@ export interface GasResult {
   [key: string]: unknown;
 }
 
-// GAS cold start + generateFixtures (full clear + rewrite of matches, leaderboard
-// and per-entry Pool_IDs) can take 20-40s. Relaxed for TEST/local dev.
-// NOTE for production: Vercel function limits apply (hobby 10s, pro 60s) — the
-// generate latency must be addressed before deploying (Pro plan, or optimise the
-// GAS write path / make generate async).
+// Keep the upstream deadline below this app's 60-second route duration.
+// Hosting-plan limits must still be verified during deployment.
 const TIMEOUT_MS = 45000;
 
 /**
@@ -35,6 +32,8 @@ const TIMEOUT_MS = 45000;
 export async function gasPost(
   action: string,
   payload: Record<string, unknown> = {},
+  tournamentId = "legacy",
+  sessionId?: string,
 ): Promise<GasResult> {
   const execUrl = process.env.TOURNAMENT_LITE_EXEC_URL;
   const secret = process.env.TOURNAMENT_LITE_ADMIN_SECRET;
@@ -54,7 +53,7 @@ export async function gasPost(
       redirect: "follow",
       cache: "no-store",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action, secret, payload }),
+      body: JSON.stringify({ action, secret, payload, tournamentId, sessionId }),
       signal: controller.signal,
     });
     const text = await res.text();

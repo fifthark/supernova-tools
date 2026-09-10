@@ -36,6 +36,7 @@ export default function PlayerBoard({ token }: { token: string }) {
   const [status, setStatus] = useState<"loading" | "error" | "ready">("loading");
   const [errorMsg, setErrorMsg] = useState("");
   const [selectedCat, setSelectedCat] = useState("");
+  const [team, setTeam] = useState("");
   const [view, setView] = useState<"matches" | "leaderboard">("matches");
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -75,7 +76,7 @@ export default function PlayerBoard({ token }: { token: string }) {
   // Default to first category; fall back if the selection disappears.
   useEffect(() => {
     if (categories.length === 0) return;
-    if (!selectedCat || !categories.some((c) => c.id === selectedCat)) {
+    if (!selectedCat || (selectedCat !== "all" && !categories.some((c) => c.id === selectedCat))) {
       const hinted = board?.selectedCategoryId;
       setSelectedCat(hinted && categories.some((c) => c.id === hinted) ? hinted : categories[0].id);
     }
@@ -111,8 +112,11 @@ export default function PlayerBoard({ token }: { token: string }) {
   const event = board?.event ?? {};
   const meta = [formatEventDate(event.date), event.venue].filter(Boolean).join(" · ");
   const cat = categories.find((c) => c.id === selectedCat);
-  const matches = (board?.matches ?? []).filter((m) => String(m.Category_ID) === selectedCat);
-  const leaderboard = (board?.leaderboard ?? []).filter((r) => String(r.Category_ID) === selectedCat);
+  const allMatches = board?.matches ?? [];
+  const teams = new Map<string, string>();
+  allMatches.forEach(m => { if (m.Entry1_ID) teams.set(String(m.Entry1_ID), `${m.Entry1_Name || m.Entry1_ID}${m.Entry1_Club ? ` · ${m.Entry1_Club}` : ""}`); if (m.Entry2_ID) teams.set(String(m.Entry2_ID), `${m.Entry2_Name || m.Entry2_ID}${m.Entry2_Club ? ` · ${m.Entry2_Club}` : ""}`); });
+  const matches = allMatches.filter(m => (selectedCat === "all" || String(m.Category_ID) === selectedCat) && (!team || String(m.Entry1_ID) === team || String(m.Entry2_ID) === team));
+  const leaderboard = (board?.leaderboard ?? []).filter((r) => (selectedCat === "all" || String(r.Category_ID) === selectedCat));
 
   const completedCount = matches.filter(isCompleted).length;
   const upcomingCount = matches.filter((m) => !isCompleted(m) && !isPlayableBye(m)).length;
@@ -159,10 +163,11 @@ export default function PlayerBoard({ token }: { token: string }) {
       </header>
 
       <CategoryNav
-        categories={categories.map((c) => ({ id: c.id, name: c.name }))}
+        categories={[{ id: "all", name: "All categories" }, ...categories.map((c) => ({ id: c.id, name: c.name }))]}
         selected={selectedCat}
         onSelect={setSelectedCat}
       />
+      <label className="tlite-field">My team<select aria-label="My team" className="tlite-input" value={team} onChange={e => { setTeam(e.target.value); setSelectedCat("all"); }}><option value="">All teams</option>{[...teams].sort((a,b) => a[1].localeCompare(b[1])).map(([id,name]) => <option key={id} value={id}>{name}</option>)}</select></label>
       <CategoryStats items={statItems} timeWindow={timeWindow} />
 
       <div className="tlite-board-toggle" role="tablist" aria-label="View">
@@ -226,7 +231,7 @@ function BoardMatchesView({ matches }: { matches: Match[] }) {
       )
     : base;
 
-  const nextUp = upcoming.find(hasTime);
+  const nextUp = (matchTab === "upcoming" ? list : upcoming).find(hasTime);
   const nextLabel = nextUp ? `${nextUp.Court ? `${nextUp.Court} · ` : ""}${nextUp.Start_Time}` : "";
 
   return (
@@ -263,8 +268,8 @@ function BoardMatchesView({ matches }: { matches: Match[] }) {
         inputMode="search"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        placeholder="Search player name"
-        aria-label="Search player name"
+        placeholder="Search team name"
+        aria-label="Search team name"
       />
       {q && list.length > 0 && (
         <div className="tlite-search-count">

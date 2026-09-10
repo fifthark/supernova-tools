@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type { TournamentState, Match, LeaderRow } from "../lib/types";
 import { isTrueish, num, groupBy, poolLetter, humanError, categoryStats } from "../lib/utils";
-import { submitScore } from "../lib/api";
+import { useTournamentApi } from "../lib/api";
 import { Message, CategoryNav, CategoryStats } from "./ui";
 
 type ScoredFn = (matchId: string, result: { match?: Match; leaderboard?: LeaderRow[] }) => void;
@@ -57,6 +57,7 @@ export default function MatchesTab({
 }
 
 function MatchCard({ match, onScored, onHold }: { match: Match; onScored: ScoredFn; onHold: HoldFn }) {
+  const { submitScore } = useTournamentApi();
   const isBye = isTrueish(match.Is_Bye) || String(match.Status) === "Bye";
   const isOverflow = !isBye && String(match.Court ?? "").trim() === "";
   const completed = String(match.Status) === "Completed";

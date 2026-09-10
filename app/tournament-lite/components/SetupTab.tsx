@@ -1,248 +1,86 @@
 "use client";
-
 import { useState } from "react";
-import type { TournamentState, Category } from "../lib/types";
-import { isActiveStatus, isTrueish, num, humanError, eventCourtLabels, settingValue, formatCourtList, formatEventDate } from "../lib/utils";
-import { generateFixtures, resetFixtures, saveCategory } from "../lib/api";
-import { Message } from "./ui";
+import type { TournamentState, Category, ActionResult } from "../lib/types";
+import { useTournamentApi } from "../lib/api";
+import { settingValue, eventCourtLabels, formatCourtList } from "../lib/utils";
 import CategoryEditModal from "./CategoryEditModal";
 import PlayerLinkCard from "./PlayerLinkCard";
 
-type Msg = { type: "success" | "error"; text: string } | null;
-
-export default function SetupTab({
-  state,
-  onRefresh,
-}: {
-  state: TournamentState;
-  onRefresh: () => Promise<void>;
-}) {
-  const categories = [...(state.categories ?? [])].sort((a, b) => num(a.Display_Order) - num(b.Display_Order));
-  const courtLabels = eventCourtLabels(state);
+export default function SetupTab({ state, onRefresh }: { state: TournamentState; onRefresh: () => Promise<void> }) {
+  const { saveCategory } = useTournamentApi();
   const [editing, setEditing] = useState<Category | null>(null);
-
-  return (
-    <div className="tlite-stack">
-      <GlobalFixtureCard state={state} onRefresh={onRefresh} />
-
-      <EventDetailsCard state={state} />
-
-      <PlayerLinkCard token={settingValue(state, "Share_Token")} />
-
-      <section className="tlite-section">
-        <div className="tlite-section-label">Categories</div>
-        <div className="tlite-cards tlite-cards-wide">
-          {categories.map((c) => (
-            <CategoryControlCard key={String(c.Category_ID)} category={c} state={state} onEdit={setEditing} onRefresh={onRefresh} />
-          ))}
-        </div>
-      </section>
-
-      {editing && (
-        <CategoryEditModal
-          category={editing}
-          courtLabels={courtLabels}
-          onClose={() => setEditing(null)}
-          onSave={async (patch) => {
-            const res = await saveCategory({ categoryId: String(editing.Category_ID), ...patch });
-            if (res.ok) await onRefresh();
-            return { ok: res.ok, message: res.ok ? "" : humanError(res.reason, res.message) };
-          }}
-        />
-      )}
-    </div>
-  );
-}
-
-// Event details (date, venue, cost, PayID). Cost + PayID live here — not in the
-// hero header — so admins still have payment info to hand without cluttering the
-// top of the console or the public board.
-function EventDetailsCard({ state }: { state: TournamentState }) {
-  const rows = [
-    { k: "Date", v: formatEventDate(settingValue(state, "Event_Date")) },
-    { k: "Venue", v: settingValue(state, "Venue") },
-    { k: "Cost", v: settingValue(state, "Cost_Note") },
-    { k: "PayID", v: settingValue(state, "PayID") },
-  ].filter((r) => r.v);
-  if (rows.length === 0) return null;
-  return (
-    <section className="tlite-card">
-      <h3 className="tlite-card-title">Event details</h3>
-      <div className="tlite-cat-grid">
-        {rows.map((r) => (
-          <div key={r.k}>
-            <span className="tlite-cat-k">{r.k}</span>
-            <span className="tlite-cat-v">{r.v}</span>
-          </div>
-        ))}
-      </div>
+  return <div className="tlite-stack">
+    <EventSettings key={JSON.stringify(state.settings)} state={state} onRefresh={onRefresh} />
+    <PlayerLinkCard token={settingValue(state, "Share_Token")} />
+    <FixtureControls state={state} onRefresh={onRefresh} />
+    <section className="tlite-section">
+      <div className="tlite-cat-head"><h3>Categories</h3><button className="tlite-btn tlite-btn-primary" onClick={() => setEditing({ Category_ID: `C-${crypto.randomUUID()}`, Category_Name: "", Fixture_Mode: "InterClub", Match_Duration_Minutes: 20, Buffer_Minutes: 5 })}>Add category</button></div>
+      <div className="tlite-cards tlite-cards-wide">{(state.categories ?? []).map(c => <article className="tlite-card" key={c.Category_ID}>
+        <h3>{c.Category_Name}</h3><p>{c.Fixture_Mode === "InterClub" ? `${c.Club_A} vs ${c.Club_B}` : "Round robin"}</p>
+        <p className="tlite-muted">{c.Start_Time || "Event start"} – {c.End_Time || "Event end"} · {formatCourtList(c.Court_Whitelist)}</p>
+        <button className="tlite-btn" onClick={() => setEditing(c)}>Edit category</button>
+        <FixtureControls state={state} categoryId={String(c.Category_ID)} onRefresh={onRefresh} />
+      </article>)}</div>
     </section>
-  );
+    {editing && <CategoryEditModal category={editing} courtLabels={eventCourtLabels(state)} onClose={() => setEditing(null)} onSave={async patch => {
+      const r = await saveCategory({ categoryId: editing.Category_ID, ...patch });
+      if (r.ok) await onRefresh();
+      return { ok: r.ok, message: r.message };
+    }} />}
+  </div>;
 }
 
-function GlobalFixtureCard({ state, onRefresh }: { state: TournamentState; onRefresh: () => Promise<void> }) {
-  const matches = state.matches ?? [];
-  const [confirm, setConfirm] = useState<null | "generate" | "reset">(null);
-  const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState<Msg>(null);
-
-  async function run(kind: "generate" | "reset") {
-    setBusy(true);
-    setMsg(null);
-    const res = kind === "generate" ? await generateFixtures({ force: true }) : await resetFixtures();
-    setBusy(false);
-    setConfirm(null);
-    if (res.ok) {
-      setMsg({
-        type: "success",
-        text: kind === "generate" ? `Generated ${res.counts?.matches ?? 0} matches.` : "All fixtures cleared.",
-      });
-      await onRefresh();
-    } else {
-      setMsg({ type: "error", text: humanError(res.reason, res.message) });
-    }
+function EventSettings({ state, onRefresh }: { state: TournamentState; onRefresh: () => Promise<void> }) {
+  const { saveSettings } = useTournamentApi();
+  const defaults: Record<string, string> = { Num_Courts: "4", Day_Start_Time: "09:00", Day_End_Time: "17:00", Default_Match_Duration_Minutes: "20", Default_Buffer_Minutes: "5" };
+  const fields = [["Event_Name", "Tournament name", "text"], ["Event_Date", "Date", "date"], ["Venue", "Venue", "text"], ["Day_Start_Time", "Tournament start", "time"], ["Day_End_Time", "Tournament end", "time"], ["Num_Courts", "Number of courts", "number"], ["Court_Names", "Court names (comma-separated, optional)", "text"], ["Default_Match_Duration_Minutes", "Match duration (minutes)", "number"], ["Default_Buffer_Minutes", "Break between matches (minutes)", "number"], ["Share_Token", "Player board link code", "text"]];
+  const [values, setValues] = useState<Record<string, string>>(() => Object.fromEntries(fields.map(([k]) => [k, settingValue(state, k) || defaults[k] || ""])));
+  const [busy, setBusy] = useState(false); const [message, setMessage] = useState("");
+  async function save(e: React.FormEvent) {
+    e.preventDefault(); setMessage("");
+    if (values.Day_End_Time <= values.Day_Start_Time) { setMessage("End time must be after start time on the same day."); return; }
+    const courts = values.Court_Names.split(",").map(s => s.trim()).filter(Boolean);
+    if (courts.length && (courts.length !== Number(values.Num_Courts) || new Set(courts.map(c => c.toLowerCase())).size !== courts.length)) { setMessage("Enter one distinct court name for each court, or leave court names blank."); return; }
+    if (values.Share_Token && !/^[A-Za-z0-9_-]+$/.test(values.Share_Token)) { setMessage("Use letters, numbers and hyphens for the player link code."); return; }
+    setBusy(true); const r = await saveSettings(values); setBusy(false);
+    if (r.ok) await onRefresh(); else setMessage(r.message || "Could not save settings.");
   }
-
-  return (
-    <section className="tlite-card tlite-generate">
-      <div className="tlite-generate-head">
-        <div>
-          <h3 className="tlite-card-title">Fixtures</h3>
-          <p className="tlite-muted">
-            {matches.length > 0 ? `${matches.length} matches generated across all categories.` : "No fixtures generated yet."}
-          </p>
-        </div>
-        {!confirm && (
-          <div className="tlite-cat-actions">
-            <button className="tlite-btn tlite-btn-primary" onClick={() => { setMsg(null); setConfirm("generate"); }} disabled={busy}>
-              Generate all
-            </button>
-            <button className="tlite-btn tlite-btn-danger" onClick={() => { setMsg(null); setConfirm("reset"); }} disabled={busy}>
-              Reset all
-            </button>
-          </div>
-        )}
-      </div>
-
-      {confirm && (
-        <div className="tlite-confirm">
-          <p className="tlite-warn">
-            Regenerating fixtures overwrites generated matches for the selected scope. Use before scoring starts.
-          </p>
-          <div className="tlite-confirm-actions">
-            <button className="tlite-btn tlite-btn-ghost" onClick={() => setConfirm(null)} disabled={busy}>
-              Cancel
-            </button>
-            <button
-              className={`tlite-btn ${confirm === "reset" ? "tlite-btn-danger" : "tlite-btn-primary"}`}
-              onClick={() => run(confirm)}
-              disabled={busy}
-            >
-              {busy ? "Working…" : confirm === "generate" ? "Generate all" : "Reset all"}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {msg && <Message type={msg.type} text={msg.text} />}
-    </section>
-  );
+  return <form className="tlite-card tlite-stack" onSubmit={save}><h3 className="tlite-card-title">Tournament settings</h3>
+    <div className="tlite-settings-grid">{fields.map(([k, label, type]) => <label className="tlite-field" key={k}><span>{label}</span><input className="tlite-input" type={type} value={values[k]} min={k === "Default_Buffer_Minutes" ? 0 : 1} step={type === "number" ? 1 : undefined} required={!!defaults[k] || k === "Event_Name"} onChange={e => setValues(v => ({ ...v, [k]: e.target.value }))} disabled={busy} /></label>)}</div>
+    <p className="tlite-muted">Category times can override the tournament window. Changing settings does not move existing fixtures; preview and regenerate them before scoring starts.</p>
+    <div className="tlite-cat-actions"><button className="tlite-btn tlite-btn-primary" disabled={busy}>{busy ? "Saving…" : "Save tournament settings"}</button><button type="button" className="tlite-btn" disabled={busy || !!values.Share_Token} onClick={() => setValues(v => ({ ...v, Share_Token: `tournament-${crypto.randomUUID()}` }))}>Create player link code</button></div>
+    {message && <p role="alert" className="tlite-msg tlite-msg-error">{message}</p>}
+  </form>;
 }
-
-function CategoryControlCard({
-  category,
-  state,
-  onEdit,
-  onRefresh,
-}: {
-  category: Category;
-  state: TournamentState;
-  onEdit: (c: Category) => void;
-  onRefresh: () => Promise<void>;
-}) {
-  const catId = String(category.Category_ID);
-  const name = category.Category_Name || catId;
-  const entries = (state.entries ?? []).filter((e) => String(e.Category_ID) === catId && isActiveStatus(e.Status)).length;
-  const catMatches = (state.matches ?? []).filter((m) => String(m.Category_ID) === catId);
-  const overflow = catMatches.filter((m) => !isTrueish(m.Is_Bye) && String(m.Court ?? "").trim() === "").length;
-
-  const [confirm, setConfirm] = useState<null | "generate" | "reset">(null);
-  const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState<Msg>(null);
-
-  async function run(kind: "generate" | "reset") {
-    setBusy(true);
-    setMsg(null);
-    const res = kind === "generate" ? await generateFixtures({ categoryId: catId, force: true }) : await resetFixtures(catId);
+function FixtureControls({ state, categoryId, onRefresh }: { state: TournamentState; categoryId?: string; onRefresh: () => Promise<void> }) {
+  const { generateFixtures, resetFixtures } = useTournamentApi();
+  const [acceptUnscheduled, setAcceptUnscheduled] = useState(false);
+  const [preview, setPreview] = useState<ActionResult | null>(null);
+  const generationSchedule = preview?.generationSchedule ?? preview?.schedule;
+  const [reset, setReset] = useState(false); const [busy, setBusy] = useState(false); const [message, setMessage] = useState("");
+  const matches = (state.matches ?? []).filter(m => !categoryId || String(m.Category_ID) === categoryId);
+  const protectedScores = matches.some(m => m.Status === "Completed" || m.Status === "InProgress" || (m.Score1 !== "" && m.Score1 != null) || (m.Score2 !== "" && m.Score2 != null));
+  async function run(kind: "preview" | "generate" | "reset") {
+    setBusy(true); setMessage("");
+    const r = kind === "reset" ? await resetFixtures(categoryId) : await generateFixtures({ categoryId, preview: kind === "preview", confirm: kind === "generate", requireSafeSchedule: true, acceptUnscheduled, previewToken: kind === "generate" ? preview?.previewToken : undefined });
     setBusy(false);
-    setConfirm(null);
-    if (res.ok) {
-      setMsg({
-        type: "success",
-        text: kind === "generate" ? `Generated ${res.counts?.matches ?? 0} matches.` : "Fixtures cleared.",
-      });
-      await onRefresh();
-    } else {
-      setMsg({ type: "error", text: humanError(res.reason, res.message) });
-    }
+    if (!r.ok) { setMessage(r.message || "Could not complete the action."); return; }
+    if (kind === "preview") { setPreview(r); setAcceptUnscheduled(false); }
+    else { setPreview(null); setReset(false); setMessage(kind === "generate" ? `Created ${r.counts?.matches ?? 0} matches.` : "Fixtures cleared for this selection."); await onRefresh(); }
   }
-
-  return (
-    <div className="tlite-card tlite-cat">
-      <div className="tlite-cat-head">
-        <h4 className="tlite-cat-name">{name}</h4>
-        {category.Event_Code && <span className="tlite-badge tlite-badge-code">{category.Event_Code}</span>}
-      </div>
-
-      <div className="tlite-cat-grid">
-        <div><span className="tlite-cat-k">Time</span><span className="tlite-cat-v">{category.Start_Time || "—"}–{category.End_Time || "—"}</span></div>
-        <div><span className="tlite-cat-k">Courts</span><span className="tlite-cat-v">{formatCourtList(category.Court_Whitelist)}</span></div>
-        <div><span className="tlite-cat-k">Match</span><span className="tlite-cat-v">{category.Match_Duration_Minutes ? `${category.Match_Duration_Minutes} min` : "—"}</span></div>
-        <div><span className="tlite-cat-k">Buffer</span><span className="tlite-cat-v">{category.Buffer_Minutes === "" || category.Buffer_Minutes == null ? "—" : `${category.Buffer_Minutes} min`}</span></div>
-        <div><span className="tlite-cat-k">Pool size</span><span className="tlite-cat-v">{category.Pool_Size || "Auto"}</span></div>
-      </div>
-
-      <div className="tlite-cat-stats">
-        <span><b>{entries}</b> entries</span>
-        <span><b>{catMatches.length}</b> matches</span>
-        {overflow > 0 && <span className="tlite-cat-overflow"><b>{overflow}</b> overflow</span>}
-      </div>
-
-      {confirm ? (
-        <div className="tlite-confirm">
-          <p className="tlite-warn">
-            {confirm === "generate"
-              ? `Regenerate ${name} fixtures? This overwrites its generated matches.`
-              : `Reset ${name}? This clears its pools, matches and standings.`}
-          </p>
-          <div className="tlite-confirm-actions">
-            <button className="tlite-btn tlite-btn-ghost" onClick={() => setConfirm(null)} disabled={busy}>
-              Cancel
-            </button>
-            <button
-              className={`tlite-btn ${confirm === "reset" ? "tlite-btn-danger" : "tlite-btn-primary"}`}
-              onClick={() => run(confirm)}
-              disabled={busy}
-            >
-              {busy ? "Working…" : confirm === "generate" ? "Regenerate" : "Reset"}
-            </button>
-          </div>
-        </div>
-      ) : (
-        <div className="tlite-cat-actions">
-          <button className="tlite-btn tlite-btn-sm" onClick={() => onEdit(category)} disabled={busy}>
-            Edit
-          </button>
-          <button className="tlite-btn tlite-btn-sm tlite-btn-primary" onClick={() => { setMsg(null); setConfirm("generate"); }} disabled={busy}>
-            Generate
-          </button>
-          <button className="tlite-btn tlite-btn-sm tlite-btn-danger" onClick={() => { setMsg(null); setConfirm("reset"); }} disabled={busy}>
-            Reset
-          </button>
-        </div>
-      )}
-
-      {msg && <Message type={msg.type} text={msg.text} compact />}
-    </div>
-  );
+  return <section className="tlite-card tlite-stack"><h3 className="tlite-card-title">{categoryId ? "Category fixtures" : "All tournament fixtures"}</h3>
+    <p className="tlite-muted">{matches.length} existing matches. Court assignments are generated from the available courts and time window.</p>
+    <div className="tlite-cat-actions"><button className="tlite-btn tlite-btn-primary" disabled={busy || protectedScores} onClick={() => { setReset(false); void run("preview"); }}>{busy ? "Working…" : "Preview matches"}</button><button className="tlite-btn tlite-btn-danger" disabled={busy || !matches.length} onClick={() => { setReset(true); setPreview(null); }}>Reset fixtures</button></div>
+    {protectedScores && <p className="tlite-warn">Scores have been entered. Generation is blocked to preserve results.</p>}
+    {reset && <div className="tlite-confirm"><p className="tlite-warn">Clear {matches.length} matches and their scores for {categoryId ? "this category" : "this tournament"}? This cannot be undone.</p><button className="tlite-btn" disabled={busy} onClick={() => setReset(false)}>Cancel</button> <button className="tlite-btn tlite-btn-danger" disabled={busy} onClick={() => void run("reset")}>Confirm reset</button></div>}
+    {preview && <div className="tlite-stack"><strong>{preview.counts?.matches ?? 0} matches · {preview.counts?.overflowMatches ?? 0} unscheduled</strong>
+      {!!((generationSchedule?.conflicts.length ?? 0) + (generationSchedule?.invalidMatchIds.length ?? 0)) && <p className="tlite-warn">Resolve {generationSchedule?.conflicts.length ?? 0} conflicts and {generationSchedule?.invalidMatchIds.length ?? 0} invalid times before creating matches.</p>}
+      {!!generationSchedule?.unscheduledMatchIds.length && <label className="tlite-field"><span><input type="checkbox" checked={acceptUnscheduled} onChange={e => setAcceptUnscheduled(e.target.checked)} /> Create fixtures with {generationSchedule.unscheduledMatchIds.length} matches still unscheduled. These matches will have no court or start time until scheduling is resolved.</span></label>}
+      <p className="tlite-muted">The preview is checked again on confirmation. If teams, settings or scores change, you will need a fresh preview.</p>
+      {(preview.warnings ?? []).map((w, i) => <p className="tlite-warn" key={i}>{typeof w === "object" && w && "message" in w ? String(w.message) : String(w)}</p>)}
+      <div className="tlite-preview"><table className="tlite-lb"><thead><tr><th>Match</th><th>Court</th><th>Start</th><th>End</th></tr></thead><tbody>{preview.matches?.map(m => <tr key={m.Match_ID}><td>{m.Entry1_Name} vs {m.Entry2_Name}</td><td>{m.Court || "Unscheduled"}</td><td>{m.Start_Time}</td><td>{m.End_Time}</td></tr>)}</tbody></table></div>
+      <button className="tlite-btn tlite-btn-primary" disabled={busy || !generationSchedule || !!generationSchedule.conflicts.length || !!generationSchedule.invalidMatchIds.length || (!!generationSchedule.unscheduledMatchIds.length && !acceptUnscheduled) || protectedScores} onClick={() => void run("generate")}>Confirm and create matches</button>
+    </div>}
+    {message && <p role="status">{message}</p>}
+  </section>;
 }

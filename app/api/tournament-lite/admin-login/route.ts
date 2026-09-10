@@ -1,52 +1,24 @@
 import { NextResponse } from "next/server";
-
-// POST /api/tournament-lite/admin-login — verify the admin passcode and set an
-// httpOnly session cookie. Passcode and session token are server-only env vars.
+import { timingSafeEqual, createHash, randomUUID } from "node:crypto";
+import { gasPost } from "@/app/tournament-lite/lib/gasClient";
+import { loginClientKey, signSession } from "@/app/tournament-lite/lib/session";
 export const dynamic = "force-dynamic";
-
-function safeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
-  let mismatch = 0;
-  for (let i = 0; i < a.length; i += 1) mismatch |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  return mismatch === 0;
-}
-
+export const maxDuration = 60;
 export async function POST(req: Request) {
   const passcode = process.env.TOURNAMENT_LITE_ADMIN_PASSCODE;
-  const token = process.env.TOURNAMENT_LITE_ADMIN_SESSION_TOKEN;
-  if (!passcode || !token) {
-    return NextResponse.json(
-      { ok: false, reason: "config_error", message: "Admin login is not configured." },
-      { status: 500 },
-    );
-  }
-
+  if (!passcode || !process.env.TOURNAMENT_LITE_ADMIN_SESSION_TOKEN) return NextResponse.json({ ok: false, reason: "config_error", message: "Admin login is not configured." }, { status: 503 });
   let body: Record<string, unknown> = {};
-  try {
-    body = (await req.json()) as Record<string, unknown>;
-  } catch {
-    /* missing/invalid body -> treated as no passcode */
+  try { const parsed = await req.json(); if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) body = parsed; } catch { /* invalid body counts as a failed attempt */ }
+  const supplied = typeof body.passcode === 'string' ? body.passcode : '';
+  const validPasscode = timingSafeEqual(createHash('sha256').update(supplied).digest(), createHash('sha256').update(passcode).digest());
+  const sessionId = randomUUID().replace(/-/g, '');
+  const result = await gasPost('adminLogin', { clientKey: await loginClientKey(req), validPasscode, sessionId });
+  if (!result.ok) {
+    const status = result.reason === 'rate_limited' ? 429 : result.reason === 'invalid_passcode' ? 401 : 503;
+    return NextResponse.json({ ok: false, reason: result.reason, message: result.message }, { status, headers: status === 429 ? { 'Retry-After': String(result.retryAfter || 900) } : undefined });
   }
-  const supplied = typeof body.passcode === "string" ? body.passcode : "";
-  // Always run the constant-time comparison — including for an empty/missing
-  // passcode — so response timing can't distinguish "no passcode sent" from
-  // "wrong passcode". safeEqual("", passcode) is false, so 401 still holds.
-  if (!safeEqual(supplied, passcode)) {
-    return NextResponse.json(
-      { ok: false, reason: "invalid_passcode", message: "Incorrect passcode." },
-      { status: 401 },
-    );
-  }
-
-  const isHttps =
-    req.headers.get("x-forwarded-proto") === "https" || new URL(req.url).protocol === "https:";
+  if (typeof result.expiresAt !== 'number') return NextResponse.json({ ok: false, reason: 'bad_gateway', message: 'Login service unavailable.' }, {status:503});
   const res = NextResponse.json({ ok: true });
-  res.cookies.set("tl_admin", token, {
-    httpOnly: true,
-    secure: isHttps,
-    sameSite: "lax",
-    path: "/",
-    maxAge: 60 * 60 * 12, // 12h pilot session
-  });
+  res.cookies.set('tl_admin', await signSession(sessionId, result.expiresAt), { httpOnly: true, secure: Boolean(process.env.VERCEL) || new URL(req.url).protocol === 'https:', sameSite: 'lax', path: '/', maxAge: 12 * 60 * 60 });
   return res;
 }

@@ -13,8 +13,7 @@ export default function EventSummary({ state }: { state: TournamentState }) {
   ).length;
 
   const name = settingValue(state, "Event_Name") || "Untitled event";
-  // Header meta: clean Melbourne-local date + venue only. Cost note and PayID are
-  // intentionally NOT shown here (they live in Setup > Event details).
+  // Header metadata contains the Melbourne-local date and venue.
   const meta = [
     formatEventDate(settingValue(state, "Event_Date")),
     settingValue(state, "Venue"),
